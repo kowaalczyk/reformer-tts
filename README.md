@@ -55,22 +55,30 @@ aws configure
 # Leave blank:
 # - Default output format
 ```
-**NOTE: if you only need read acces (for reproduction), all you need is to specify the region**
+*NOTE: if you only need read acces (for reproduction), all you need is to specify the region*
+
+**Steps 1-3 are performed only once, steps 4+ should be performed every time you start working after a break**
 
 4. Get all of the data
 ```shell
 dvc pull
 ```
 
+5. Install `reformer_tts` package in editable format (auto-reload after file save)
+```shell
+pip install -e .
+```
 
-### Environment and libraries
+### Setup details
+
+#### Environment and libraries
 
 - Use whatever package manager you want
 - Use `Python>=3.8`
 - All python dependencies will be in `requirements.txt`
 
 
-### Data dependencies
+#### Data dependencies
 
 We use [DVC](https://dvc.org/) for defining data processing pipelines,
 with remote set to `s3://reformer-tts/dvc`.
@@ -82,3 +90,4 @@ use it to create other folders (s3 prefixes) for releasing models, etc.
 ### TODOs
 
 - setup workflow for running instructions on slurm cluster (for GPUs)
+- configure neptune for experiment tracking
