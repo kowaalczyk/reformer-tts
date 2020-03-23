@@ -1,0 +1,24 @@
+name: reformer-tts
+channels:
+  - base
+  - conda-forge
+  - pytorch
+dependencies:
+  - python=3.8
+  - pip>=20.0,<20.1
+  - pytorch==1.4.0
+  - torchvision==0.5.0
+  - ffmpeg>=3.4,<4.0
+  - pip:
+    - awscli==1.18
+    - boto3==1.12
+    - dvc==0.88
+    - Click==7
+    - PyYAML==5.1.2
+    - tqdm==4.43.0
+    - beautifulsoup4==4.8.2
+    - requests==2.23.0
+    - demjson==2.2.4
+    - scipy==1.4.1
+    - ffmpeg-python==0.2.0
+    - -e .

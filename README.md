@@ -30,6 +30,20 @@ Our deliverable will include:
 
 ## Development setup
 
+### 1. Install dependencies
+
+#### Using conda
+
+Thanks to conda-forge community, we can install all packages (including necessary
+binaries, like `ffmpeg`) using one command.
+
+```shell script
+conda env create -f environment.yml
+```
+
+
+#### Using other package managers
+
 1. Check your environment and ensure you have `Python>=3.8`:
 ```shell
 which python
@@ -41,7 +55,12 @@ python --version
 pip install -r requirements.txt
 ```
 
-3. In order for dvc to have write access to the remote, 
+3. Ensure you have `ffmpeg>=3.4,<4.0` installed ([installation instructions](https://www.ffmpeg.org/download.html))
+
+
+### 2. Configure tools
+
+1. In order for dvc to have write access to the remote, 
 configure your aws account (using credentials from the csv):
 ```shell
 aws configure
@@ -55,11 +74,13 @@ aws configure
 # Leave blank:
 # - Default output format
 ```
+
 *NOTE: if you only need read acces (for reproduction), all you need is to specify the region*
 
-**Steps 1-3 are performed only once, steps 4+ should be performed every time you start working after a break**
-
-4. Get all of the data
+2. Get all of the data - this step needs to be repeated:
+    - every time you start working after a break
+    - after every git pull
+    - after checking out another git branch
 ```shell
 dvc pull
 ```
