@@ -36,7 +36,7 @@ which python
 python --version
 ```
 
-2. Install python dependencies:
+2. Install python dependencies (also installs our package in editable mode):
 ```shell
 pip install -r requirements.txt
 ```
@@ -64,10 +64,6 @@ aws configure
 dvc pull
 ```
 
-5. Install `reformer_tts` package in editable format (auto-reload after file save)
-```shell
-pip install -e .
-```
 
 ### Setup details
 
@@ -87,7 +83,48 @@ Credentials for DVC have access to entire `reformer-tts` bucket, so that we can
 use it to create other folders (s3 prefixes) for releasing models, etc.
 
 
+### Setup for running jobs on [entropy cluster](entropy.mimuw.edu.pl)
+
+Job definition files are located in `jobs/` directory.
+
+File `setup_jobs.sh` was created to help with setting up environment for jobs:
+```
+./setup_jobs.sh help
+
+Setup tasks:
+./setup_jobs.sh dirs - make directories necessary to run the jobs
+./setup_jobs.sh sync - sync all necessary data to /scidatasm/kk385830/ partiion
+./setup_jobs.sh clean_users - change usernames in job files to a generic $USER
+./setup_jobs.sh all - perform all of the setup tasks in sequence
+
+Running jobs:
+./setup_jobs.sh check - checks scripts for common errors
+./setup_jobs.sh run [job_file] performs checks and runs the job using sbatch
+```
+
+Running jobs manually may result in errors or data loss.
+To prevent it, use `./setup_jobs.sh run [job_file]` instead of `sbatch` directly.
+
+Example:
+```shell script
+./setup_jobs.sh run jobs/compile_nv_wavenet_extension.sh
+```
+
+This will automatically save job output with its name and timestamp in your results folder.
+
+
+#### Adding new jobs
+
+Before sharing your job file with others, document what changes need to be made
+in the job file, so that it works for other users. Make sure to include:
+1. Changes to user-specific paths (possibly requires changing `setup_jobs.sh),
+   as #SBATCH directives cannot use environment variables
+   (see [related docs](https://help.rc.ufl.edu/doc/Using_Variables_in_SLURM_Jobs))
+2. Directories that need to be created (otherwise the script will crash)
+3. Results that need to be moved (jobs save results in /results/ partitions,
+   usually we'll want to add results to dvc or some other local path)
+
+
 ### TODOs
 
-- setup workflow for running instructions on slurm cluster (for GPUs)
 - configure neptune for experiment tracking
