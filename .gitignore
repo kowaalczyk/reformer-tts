@@ -1,6 +1,7 @@
 .idea
 .vscode
 .DS_Store
+.nltk
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -131,6 +132,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
-# IDE
-.idea/

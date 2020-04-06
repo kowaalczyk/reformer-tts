@@ -1,9 +1,11 @@
 from pathlib import Path
+from typing import Dict
 
 import click
 import yaml
 from click import Context, ClickException
 
+from reformer_tts.dataset.preprocess import preprocess_data
 from reformer_tts.scrapper.download import download_speech_videos_and_transcripts
 
 DATA_DIRECTORY = Path("data")
@@ -25,7 +27,12 @@ def download(ctx: Context):
     download_speech_videos_and_transcripts(url)
 
 
-def load_config(config_path: Path):
+@cli.command()
+def preprocess():
+    preprocess_data()
+
+
+def load_config(config_path: Path) -> Dict:
     with config_path.open("r") as config_file:
         try:
             return yaml.safe_load(config_file)

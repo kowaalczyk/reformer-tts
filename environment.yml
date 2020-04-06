@@ -8,7 +8,7 @@ dependencies:
   - pip>=20.0,<20.1
   - pytorch==1.4.0
   - torchvision==0.5.0
-  - ffmpeg>=3.4,<4.0
+  - ffmpeg>=4.0
   - pip:
     - awscli==1.18
     - boto3==1.12
@@ -21,4 +21,7 @@ dependencies:
     - demjson==2.2.4
     - scipy==1.4.1
     - ffmpeg-python==0.2.0
+    - nltk==3.4.5
+    - g2p-en==2.1.0
+    - pydub==0.23.1
     - -e .
