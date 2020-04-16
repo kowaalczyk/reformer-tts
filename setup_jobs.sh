@@ -22,11 +22,12 @@ function dirs() {
 
 function sync() {
     echo "copying directories to /scidatasm/$USER/"
-    # rsync is used so that existing files are updated only if hash is different
-    rsync -avr "$(pwd)/data" "/scidatasm/$USER/"
-    rsync -avr "$(pwd)/nv_wavenet" "/scidatasm/$USER/"
+    rsync -avr "$(pwd)" "/scidatasm/$USER"
 
-    echo "sync complete at $(date), data will be available on compute nodes in 10 minutes"
+    echo "sync complete at $(date)"
+    echo "waiting for the data to be syncrhonized..."
+    sleep 600
+    echo "data is syncrhonized at $(date)"
 }
 
 function clean_users() {

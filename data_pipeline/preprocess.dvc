@@ -1,0 +1,18 @@
+md5: 20b386c32db44e6243e3ffd65705d73b
+cmd: python reformer_tts/cli.py preprocess
+wdir: ..
+deps:
+- md5: c97215d0b2ffc5cffb834982c4e975f3.dir
+  path: data/raw
+- md5: ff1e7e30147750861ec953b1999c633a
+  path: reformer_tts/cli.py
+- md5: ec62c821c43324b14649fa913e701b19
+  path: reformer_tts/dataset/preprocess.py
+- md5: 26da4d77bde4ba5d4ee2b73e5ac1d973
+  path: config/default.py
+outs:
+- md5: 7fc053b77ce0e22e1d0cb8b538f81624.dir
+  path: data/preprocessed
+  cache: true
+  metric: false
+  persist: false

@@ -1,0 +1,6 @@
+# default config for reformer-tts:
+# - there is no need to specify defaults so this file is an empty yaml dict
+# - settings in config files override defaults
+# - easiest way to see available config keys is to run:
+#   python reformer_tts/cli.py show-config
+{}

@@ -9,29 +9,29 @@ import requests
 from bs4 import BeautifulSoup
 from tqdm.auto import trange, tqdm
 
-DATA_DIRECTORY = Path("data")
-VIDEO_DIRECTORY = DATA_DIRECTORY / "raw" / "videos"
-TRANSCRIPT_DIRECTORY = DATA_DIRECTORY / "raw" / "transcripts"
 
-
-def download_speech_videos_and_transcripts(url: str):
+def download_speech_videos_and_transcripts(
+        url: str,
+        video_directory: Path,
+        transcript_directory: Path
+):
     speech_urls = get_speech_urls(url, n_pages=2)
     video_urls, video_transcripts = get_speech_video_urls_and_transcripts(speech_urls)
 
-    VIDEO_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    video_directory.mkdir(parents=True, exist_ok=True)
     for i, video_url in enumerate(tqdm(video_urls, desc="Downloading speech videos", unit="video")):
-        download_video(video_url, filename=f"speech{i:02d}.mp4")
+        download_video(video_url, f"speech{i:02d}.mp4", video_directory)
 
-    TRANSCRIPT_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    transcript_directory.mkdir(parents=True, exist_ok=True)
     for i, transcript in enumerate(tqdm(
             video_transcripts,
             desc="Downloading speech transcripts",
             unit="transcript"
     )):
-        save_transcript(transcript, filename=f"speech{i:02d}.json")
+        save_transcript(transcript, f"speech{i:02d}.json", transcript_directory)
 
-    print(f"Saved speech videos to: {VIDEO_DIRECTORY.resolve()}")
-    print(f"Saved speech transcripts to: {TRANSCRIPT_DIRECTORY.resolve()}")
+    print(f"Saved speech videos to: {video_directory.resolve()}")
+    print(f"Saved speech transcripts to: {transcript_directory.resolve()}")
 
 
 def get_speech_urls(url: str, n_pages: int) -> List[str]:
@@ -60,7 +60,7 @@ def get_speech_video_urls_and_transcripts(speech_urls: List[str]) -> (List[str],
     return video_urls, video_transcripts
 
 
-def download_video(url: str, filename: str):
+def download_video(url: str, filename: str, video_dir: Path):
     stream = requests.get(url, stream=True)
     total_size = int(stream.headers.get('content-length', 0))
     with tqdm(
@@ -70,21 +70,21 @@ def download_video(url: str, filename: str):
             unit_scale=True,
             leave=False
     ) as progress_bar:
-        filepath = VIDEO_DIRECTORY / filename
+        filepath = video_dir / filename
         with filepath.open("wb") as file:
             for data in stream.iter_content(chunk_size=1024):
                 file.write(data)
                 progress_bar.update(len(data))
 
 
-def save_transcript(transcript: Dict, filename: str):
+def save_transcript(transcript: Dict, filename: str, transcript_directory: Path):
     class DecimalEncoder(json.JSONEncoder):
         def default(self, obj):
             if isinstance(obj, Decimal):
                 return float(obj)
             return json.JSONEncoder.default(self, obj)
 
-    transcript_path = TRANSCRIPT_DIRECTORY / filename
+    transcript_path = transcript_directory / filename
     with transcript_path.open("w") as transcript_file:
         json.dump(transcript, transcript_file, cls=DecimalEncoder)
 

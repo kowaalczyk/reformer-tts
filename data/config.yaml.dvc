@@ -1,7 +1,0 @@
-md5: 51e3d735fef84b54703294560857e40a
-outs:
-- md5: a1e7b1ff3ad03fcdf6e3407765d5bb27
-  path: config.yaml
-  cache: true
-  metric: false
-  persist: false

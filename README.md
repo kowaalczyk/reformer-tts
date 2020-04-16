@@ -88,14 +88,46 @@ dvc pull
 
 ### Setup details
 
-#### Environment and libraries
-
 - Use whatever package manager you want
 - Use `Python>=3.8`
-- All python dependencies will be in `requirements.txt`
+- All python dependencies will be in `requirements.txt` 
+  as well as in `environment.yml`
 
 
-#### Data dependencies
+### Configuration
+
+Configuration is organized in dataclass structures: 
+- Each project submodule has its own configuration file, called `config.py`, 
+  where the parameters and *default* values are defined - for example,
+  dataset config parameters are specified in `reformer_tts.dataset.config`
+- The `reformer_tts.config.Config` class contains all submodules' config settings
+- *Actual* values of config parameters are loaded from configuration files, which
+  define an instance of `Config` class that is loaded by CLI. For convenience,
+  and support for python types, these config files are just plain python files.
+
+This way, the default values are set close to the place where they are used,
+any config value can be overridden wherever you want, and we take advantage
+of python typing to eliminate unnecessary conversions from strings yaml / json. 
+
+**To change runtime configuration**
+- create a python file, which imports `reformer_tts.Config`
+- in this file, create `CONFIG` variable, set it to an instance of `Config` 
+  class with its fields set to the values you want 
+- tell CLI to use your config:
+    - using environment variable: `export REFORMER_TTS_CONFIG=/path/to/your_config.py`
+    - command line option: `python reformer_tts/cli.py --config=/path/to/your_config.py`
+
+**To add configuration for new module**
+- create `config.py` in your module
+- define a dataclass with all necessary config parameters in the new file:
+    - make sure your class does not re-define parameter values for other config files
+      (ie. we specified number of spectrogram channels only once - in the same place
+      for both `dataset` and `squeezewave` modules)
+    - make sure your class has default values for all the parameters
+- add field for your dataclass in the `reformer_tts.config` main config class
+
+
+### Data dependencies
 
 We use [DVC](https://dvc.org/) for defining data processing pipelines,
 with remote set to `s3://reformer-tts/dvc`.
@@ -106,7 +138,7 @@ use it to create other folders (s3 prefixes) for releasing models, etc.
 
 ### Setup for running jobs on [entropy cluster](entropy.mimuw.edu.pl)
 
-Job definition files are located in `jobs/` directory.
+Job definition files are located in [`jobs/`](jobs) directory.
 
 File `setup_jobs.sh` was created to help with setting up environment for jobs:
 ```
@@ -114,7 +146,7 @@ File `setup_jobs.sh` was created to help with setting up environment for jobs:
 
 Setup tasks:
 ./setup_jobs.sh dirs - make directories necessary to run the jobs
-./setup_jobs.sh sync - sync all necessary data to /scidatasm/kk385830/ partiion
+./setup_jobs.sh sync - sync all necessary data to /scidatasm/$USER/ partiion
 ./setup_jobs.sh clean_users - change usernames in job files to a generic $USER
 ./setup_jobs.sh all - perform all of the setup tasks in sequence
 
@@ -149,3 +181,4 @@ in the job file, so that it works for other users. Make sure to include:
 ### TODOs
 
 - configure neptune for experiment tracking
+- document hardware specs (GPU) as soon as we set up training
