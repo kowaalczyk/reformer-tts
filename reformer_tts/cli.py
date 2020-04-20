@@ -2,6 +2,7 @@ from dataclasses import asdict
 from pprint import pprint
 
 import click
+import neptune
 from click import Context
 
 from reformer_tts.config import Config
@@ -15,6 +16,7 @@ from reformer_tts.dataset.preprocess import preprocess_data
 def cli(ctx: Context, config):
     ctx.ensure_object(dict)
     ctx.obj["CONFIG"] = Config.from_yaml_file(config)
+    neptune.init("reformer-tts/reformer-tts")
 
 
 @cli.command()
