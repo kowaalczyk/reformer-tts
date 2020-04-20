@@ -21,6 +21,7 @@ dependencies:
     - tqdm==4.43.0
     - beautifulsoup4==4.8.2
     - requests==2.23.0
+    - reformer-pytorch==0.19.1
     - demjson==2.2.4
     - scipy==1.4.1
     - ffmpeg-python==0.2.0

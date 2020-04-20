@@ -7,6 +7,7 @@ PyYAML==5.1.2
 tqdm==4.43.0
 beautifulsoup4==4.8.2
 requests==2.23.0
+reformer-pytorch==0.19.1
 demjson==2.2.4
 torch==1.4.0
 torchvision==0.5.0

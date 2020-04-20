@@ -8,6 +8,7 @@ import yaml
 
 from reformer_tts.dataset.config import DatasetConfig
 from reformer_tts.squeeze_wave.config import SqueezeWaveConfig
+from reformer_tts.model.config import ReformerTTSConfig
 
 
 @dataclass
@@ -36,7 +37,7 @@ class Config:
     """ Directory where NLTK will store downloaded data for text processing """
 
     dataset: DatasetConfig = DatasetConfig()
-    # TODO: Add config for reformer model here
+    model: ReformerTTSConfig = ReformerTTSConfig()
     squeeze_wave: SqueezeWaveConfig = SqueezeWaveConfig()
 
     def to_yaml_fle(self, path: Union[str, Path]):
