@@ -20,4 +20,5 @@ unidecode==1.1.1
 nltk==3.4.5
 g2p-en==2.1.0
 pydub==0.23.1
+pandas==1.0.3
 -e .
