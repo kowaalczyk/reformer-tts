@@ -170,10 +170,10 @@ class ReversibleHalfResidual(nn.Module):
 
 
 class ReversibleSwap(nn.Module):
-    def __init__(self, f):
+    def __init__(self):
         super().__init__()
 
-    def forward(self, x, f_args={}, g_args={}):
+    def forward(self, x, **kwargs):
         x1, x2 = torch.chunk(x, 2, dim=2)
         return torch.cat([x2, x1], dim=2)
 

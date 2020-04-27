@@ -1,5 +1,3 @@
-from dataclasses import asdict
-
 import torch
 from torch import nn
 
@@ -20,10 +18,10 @@ class Encoder(nn.Module):
         self.prenet = EncoderPreNet(
             num_embeddings=dict_size,
             embedding_dim=embedding_dim,
-            **asdict(prenet_kwargs)
+            **prenet_kwargs
         )
         self.positional_encoding = ScaledPositionalEncoding(embedding_dim)
-        self.reformer = ReformerEnc(embedding_dim, **asdict(reformer_kwargs))
+        self.reformer = ReformerEnc(embedding_dim, **reformer_kwargs)
 
     def forward(self, input_):
         input_ = self.prenet(input_)
@@ -45,20 +43,20 @@ class Decoder(nn.Module):
         super().__init__()
         self.prenet = DecoderPreNet(
             input_size=num_mel_coeffs,
-            output_size=num_mel_coeffs,
-            **asdict(prenet_kwargs)
+            output_size=embedding_dim,
+            **prenet_kwargs
         )
         self.positional_encoding = ScaledPositionalEncoding(embedding_dim)
-        self.reformer = ReformerDec(embedding_dim, **asdict(reformer_kwargs))
+        self.reformer = ReformerDec(embedding_dim, **reformer_kwargs)
         self.mel_linear = nn.Linear(embedding_dim, num_mel_coeffs)
-        self.stop_linear = nn.Linear(embedding_dim, 2)  # Note there are two outputs, use BinaryCE loss
-        self.postnet = PostConvNet(num_mel_coeffs, num_hidden=embedding_dim, **asdict(postnet_kwargs))
+        self.stop_linear = nn.Linear(embedding_dim, 1)
+        self.postnet = PostConvNet(num_mel_coeffs, num_hidden=embedding_dim, **postnet_kwargs)
 
     def forward(self, input_, keys):
         input_ = self.prenet(input_)
         input_ = self.positional_encoding(input_)
         input_ = self.reformer(input_, keys=keys)
-        stop = torch.softmax(self.stop_linear(input_))
+        stop = self.stop_linear(input_)
         mel = self.mel_linear(input_)
         residual = self.postnet(mel)
         mel += residual
@@ -70,6 +68,7 @@ class ReformerTTS(nn.Module):
             self,
             num_mel_coeffs: int,
             dict_size: int,
+            pad_base: int,
             embedding_dim: int,
             enc_reformer_kwargs: ReformerEncConfig,
             enc_prenet_kwargs: EncoderPreNetConfig,
@@ -92,7 +91,20 @@ class ReformerTTS(nn.Module):
             reformer_kwargs=dec_reformer_kwargs,
             postnet_kwargs=postnet_kwargs,
         )
+        self.pad_base = pad_base
 
     def forward(self, text, dec_input):
-        keys = self.enc(text)
-        return self.dec(dec_input, keys=keys)
+        pad_text = pad_to_multiple(text.view((*text.shape, 1)), self.pad_base).view((text.shape[0], -1))
+        pad_spec = pad_to_multiple(dec_input, self.pad_base)
+        keys = self.enc(pad_text)
+        return self.dec(pad_spec, keys=keys)[:dec_input.shape[1]]
+
+
+def pad_to_multiple(tensor, pad_base):
+    """
+    Assumed tensor is of shape (batch, seq_len, channels)
+    """
+    new_len = ((tensor.shape[1] - 1) // pad_base + 1) * pad_base
+    # one is subtracted for the case when tensor.shape[1] % pad_base == 0
+    padding = torch.zeros(tensor.shape[0], new_len - tensor.shape[1], tensor.shape[2], dtype=tensor.dtype)
+    return torch.cat([tensor, padding], dim=1)

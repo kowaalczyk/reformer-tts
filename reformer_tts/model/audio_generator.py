@@ -14,10 +14,9 @@ class AudioGenerator:
         stop = False
 
         while not stop:
-            generated, stop_layer = self.model(text, spectrogram)
+            generated, stop_pred = self.model(text, spectrogram)
             spectrogram = torch.cat([spectrogram, generated[:, -1, :].view(1, 1, self.model.num_mel_coeffs)], dim=1)
-            if stop_layer[1] > 0.5:
-                stop = True
+            stop = torch.sigmoid(stop_pred) > 0.5
 
         return spectrogram[1, 1:, :]
 

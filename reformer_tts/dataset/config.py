@@ -25,5 +25,7 @@ class DatasetConfig:
 
     trump_speaker_names: Container[str] = ("Donald Trump", "President Trump")
 
+    dict_size: int = 75  # number of unique phonemes
+    split_percentages: (float, float, float) = (0.75, 0.25, 0.)  # (train, val, test)
     audio_format: AudioFormat = AudioFormat()
     mel_format: MelFormat = MelFormat()

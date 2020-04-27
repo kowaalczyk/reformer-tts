@@ -28,10 +28,10 @@ class LSHSelfAttentionConfig:
 
 @dataclass
 class ReformerEncConfig:
-    depth: int = 6,
-    ff_chunks: int = 100,
-    attn_kwargs: LSHSelfAttentionConfig = LSHSelfAttentionConfig(),
-    ff_kwargs: FeedForwardConfig = FeedForwardConfig(),
+    depth: int = 6
+    ff_chunks: int = 100
+    attn_kwargs: LSHSelfAttentionConfig = LSHSelfAttentionConfig()
+    ff_kwargs: FeedForwardConfig = FeedForwardConfig()
 
 
 @dataclass
@@ -56,7 +56,6 @@ class DecoderPreNetConfig:
 
 @dataclass
 class PostConvNetConfig:
-    num_hidden: int = 512
     dropout: float = 0.  # 0.1 originally in Transformer-TTS
 
 
@@ -65,8 +64,9 @@ class ReformerTTSConfig:
     num_mel_coeffs: int
     dict_size: int
     embedding_dim: int = 512
-    enc_reformer_kwargs: ReformerEncConfig = ReformerEncConfig()
+    pad_base: int = 128  # should be divisible by 2x any bucket size from sub-configs
     enc_prenet_kwargs: EncoderPreNetConfig = EncoderPreNetConfig()
+    enc_reformer_kwargs: ReformerEncConfig = ReformerEncConfig()
     dec_prenet_kwargs: DecoderPreNetConfig = DecoderPreNetConfig()
     dec_reformer_kwargs: ReformerDecConfig = ReformerDecConfig()
     postnet_kwargs: PostConvNetConfig = PostConvNetConfig()

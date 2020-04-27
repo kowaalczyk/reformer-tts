@@ -9,6 +9,7 @@ import yaml
 from reformer_tts.dataset.config import DatasetConfig
 from reformer_tts.squeeze_wave.config import SqueezeWaveConfig
 from reformer_tts.model.config import ReformerTTSConfig
+from .training.config import TTSTrainingConfig, VocoderTrainingConfig
 
 
 @dataclass
@@ -37,8 +38,13 @@ class Config:
     """ Directory where NLTK will store downloaded data for text processing """
 
     dataset: DatasetConfig = DatasetConfig()
-    model: ReformerTTSConfig = ReformerTTSConfig()
+    model: ReformerTTSConfig = ReformerTTSConfig(
+        num_mel_coeffs=dataset.mel_format.n_mels,
+        dict_size=dataset.dict_size
+    )
     squeeze_wave: SqueezeWaveConfig = SqueezeWaveConfig()
+    tts_training: TTSTrainingConfig = TTSTrainingConfig()
+    vocoder_training: VocoderTrainingConfig = VocoderTrainingConfig()
 
     def to_yaml_fle(self, path: Union[str, Path]):
         """  Saves current config (incl. defaults) to yaml file at path """

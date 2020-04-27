@@ -104,8 +104,8 @@ class PostConvNet(nn.Module):
     def __init__(
             self,
             mel_size: int,
-            num_hidden: int = 512,
-            dropout: float = 0.  # 0.1 originally in Transformer-TTS
+            num_hidden: int,
+            dropout: float
     ):
         """
         :param mel_size: number of mel spectrogram coefficients

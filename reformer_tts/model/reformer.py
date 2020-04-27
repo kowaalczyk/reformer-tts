@@ -1,5 +1,3 @@
-from dataclasses import asdict
-
 import torch
 from torch import nn
 
@@ -66,9 +64,10 @@ class ReformerEnc(nn.Module):
         blocks = []
         norm_type = nn.LayerNorm
 
+        print(depth)
         for _ in range(depth):
-            self_attn = LSHSelfAttention(dim, causal=False, **asdict(attn_kwargs))
-            ff = FeedForward(dim, **asdict(ff_kwargs))
+            self_attn = LSHSelfAttention(dim, causal=False, **attn_kwargs)
+            ff = FeedForward(dim, **ff_kwargs)
 
             normed_self_attn = WithNorm(norm_type, dim, self_attn)
             normed_ff = WithNorm(norm_type, dim, ff)
@@ -106,10 +105,10 @@ class ReformerDec(nn.Module):
         norm_type = nn.LayerNorm
 
         for _ in range(depth):
-            self_attn = LSHSelfAttention(dim, causal=True, **asdict(self_attn_kwargs))
-            attn = LSHSelfAttention(dim, causal=False, **asdict(attn_kwargs))
+            self_attn = LSHSelfAttention(dim, causal=True, **self_attn_kwargs)
+            attn = LSHSelfAttention(dim, causal=False, **attn_kwargs)
             # causal has to be false because context is appended to input sequence
-            ff = FeedForward(dim, **asdict(ff_kwargs))
+            ff = FeedForward(dim, **ff_kwargs)
 
             normed_self_attn = WithNorm(norm_type, dim, self_attn)
             normed_attn = WithNorm(norm_type, dim, attn)
