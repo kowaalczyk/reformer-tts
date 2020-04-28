@@ -1,0 +1,26 @@
+md5: ae2ba0f57f4c03af1fbf0add0bcabc49
+cmd: python scripts/preprocess_lj_speech_dataset.py
+wdir: ..
+deps:
+- md5: c4763be9595ddfa79c2fc6eaeb3b6c8e
+  path: data/lj-speech/LJSpeech-1.1.tar.bz2
+- md5: 272685d27a5020e8aeff6b5d55afe18a
+  path: config/lj_speech.yml
+- md5: f1f1c39f01e9987fd80a59db8eaf2172
+  path: scripts/preprocess_lj_speech_dataset.py
+outs:
+- md5: de3c7e64ae2cfb4bedc806b5a97004a9
+  path: data/lj-speech/transcript.csv
+  cache: true
+  metric: false
+  persist: false
+- md5: 9950d0cee4cc5c4db97f47dcf8e925be.dir
+  path: data/lj-speech/mel
+  cache: true
+  metric: false
+  persist: false
+- md5: 4a206c963945e820041f3ddebb3e838c.dir
+  path: data/lj-speech/audio
+  cache: true
+  metric: false
+  persist: false

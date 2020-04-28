@@ -1,0 +1,7 @@
+md5: 7a4aa1e574dd86844e123cb1d161fec4
+outs:
+- md5: c4763be9595ddfa79c2fc6eaeb3b6c8e
+  path: LJSpeech-1.1.tar.bz2
+  cache: true
+  metric: false
+  persist: false

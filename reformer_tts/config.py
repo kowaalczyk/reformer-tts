@@ -1,14 +1,14 @@
 import importlib.util
 from dataclasses import dataclass, asdict
 from pathlib import Path, PosixPath, WindowsPath
-from typing import Union
+from typing import Union, Tuple
 
 import dacite as D
 import yaml
 
 from reformer_tts.dataset.config import DatasetConfig
-from reformer_tts.squeeze_wave.config import SqueezeWaveConfig
 from reformer_tts.model.config import ReformerTTSConfig
+from reformer_tts.squeeze_wave.config import SqueezeWaveConfig
 from .training.config import TTSTrainingConfig, VocoderTrainingConfig
 
 
@@ -67,7 +67,7 @@ class Config:
         config = D.from_dict(
             data_class=cls,
             data=config_dict,
-            config=D.Config(check_types=False, strict=True)
+            config=D.Config(check_types=False, strict=True, cast=[Path, Tuple])
         )
         return config
 
