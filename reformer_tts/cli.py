@@ -40,10 +40,11 @@ def preprocess(ctx: Context):
         merged_transcript_csv_path=config.merged_transcript_csv_path,
         audio_directory=config.audio_directory,
         video_directory=config.video_directory,
-        mel_directory=config.mel_directory,
+        spectrogram_dir=config.mel_directory,
         nltk_data_directory=config.nltk_data_directory,
         audio_format=config.dataset.audio_format,
-        mel_format=config.dataset.mel_format
+        mel_format=config.dataset.mel_format,
+        use_tacotron2_spectrograms=config.dataset.use_tacotron2_spectrograms
     )
 
 

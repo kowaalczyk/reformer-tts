@@ -19,10 +19,11 @@ def preprocess_data(
         merged_transcript_csv_path: Path,
         audio_directory: Path,
         video_directory: Path,
-        mel_directory: Path,
+        spectrogram_dir: Path,
         nltk_data_directory: Path,
         audio_format: AudioFormat,
         mel_format: MelFormat,
+        use_tacotron2_spectrograms: bool
 ):
     transcript_paths = list(transcript_directory.glob("*.json"))
     transcripts = [load_transcript(transcript_path) for transcript_path in transcript_paths]
@@ -85,27 +86,34 @@ def preprocess_data(
             print(f"{e}, {audio_file =}")
             return
 
-    mel_factory = C.MelSpectrogramCreator(
-        audio_format.sampling_rate,
-        **asdict(mel_format)
-    )
-    mel_directory.mkdir(exist_ok=True, parents=True)
+    if use_tacotron2_spectrograms:
+        spectrogram_factory = C.Tacotron2SpectrogramCreator(
+            audio_format.sampling_rate,
+            **asdict(mel_format)
+        )
+    else:
+        spectrogram_factory = C.MelSpectrogramCreator(
+            audio_format.sampling_rate,
+            **asdict(mel_format)
+        )
+    spectrogram_dir.mkdir(exist_ok=True, parents=True)
     for audio_file in tqdm(
             audio_files,
             desc="Generating mel spectrograms",
             unit="clip"
     ):
         try:
-            spectrogram_file = Path(mel_directory / audio_file.name) \
+            spectrogram_file = Path(spectrogram_dir / audio_file.name) \
                 .with_suffix(".pt")
-            mel_factory.audio_to_mel_spectrogram(audio_file, spectrogram_file)
+            spectrogram_factory.audio_to_mel_spectrogram(audio_file, spectrogram_file)
         except Exception as e:
             print(f"{e}, {audio_file =}")
             return
 
     print(f"Saved merged transcript csv to: {merged_transcript_csv_path.resolve()}")
     print(f"Saved speech audio clips to {audio_directory.resolve()}")
-    print(f"Saved mel spectrograms to {mel_directory.resolve()}")
+    spectrogram_type = "tacotron2-compatible" if use_tacotron2_spectrograms else "mel"
+    print(f"Saved {spectrogram_type} spectrograms to {spectrogram_dir.resolve()}")
 
 
 def load_transcript(transcript_path: Path) -> Dict:

@@ -1,0 +1,7 @@
+# default config, but for tacotron2-compatible spectrograms
+preprocessed_data_directory: 'data/preprocessed-tacotron2'
+merged_transcript_csv_path: 'data/preprocessed-tacotron2/transcript.csv'
+audio_directory: 'data/preprocessed-tacotron2/audio'
+mel_directory: 'data/preprocessed-tacotron2/mel'
+dataset:
+  use_tacotron2_spectrograms: true

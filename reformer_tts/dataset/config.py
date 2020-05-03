@@ -27,5 +27,9 @@ class DatasetConfig:
 
     dict_size: int = 75  # number of unique phonemes
     split_percentages: (float, float, float) = (0.75, 0.25, 0.)  # (train, val, test)
+
     audio_format: AudioFormat = AudioFormat()
+
     mel_format: MelFormat = MelFormat()
+    use_tacotron2_spectrograms: bool = False
+    """ if True, use tacotron2-compatible spectrograms instead of mel spectrograms """

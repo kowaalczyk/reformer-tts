@@ -1,5 +1,5 @@
-md5: 5db2716ab170bb255139c7e5ab5a03c1
-cmd: python reformer_tts/cli.py preprocess
+md5: 6316183b4fbaa773f251c8caaef73633
+cmd: python reformer_tts/cli.py -c config/trump-tacotron2.yml preprocess
 wdir: ..
 deps:
 - md5: c97215d0b2ffc5cffb834982c4e975f3.dir
@@ -8,11 +8,11 @@ deps:
   path: reformer_tts/cli.py
 - md5: 16339a3252711786b89a24f058ec520f
   path: reformer_tts/dataset/preprocess.py
-- md5: 1b3706ee20be37364b6353180074b11e
-  path: config/default.yml
+- md5: 99a51673754363734224ca3acd06dc2e
+  path: config/trump-tacotron2.yml
 outs:
-- md5: 7fc053b77ce0e22e1d0cb8b538f81624.dir
-  path: data/preprocessed
+- md5: 3729e1fafb2a7d28bead4fdc11b2c286.dir
+  path: data/preprocessed-tacotron2
   cache: true
   metric: false
   persist: false

@@ -1,11 +1,14 @@
+from abc import ABC
 from pathlib import Path
 from typing import List
 
 import ffmpeg
+import librosa
 import nltk
+import numpy as np
 import torch
 import torchaudio
-from torchaudio.transforms import MelSpectrogram, Resample
+from torchaudio.transforms import MelSpectrogram, Resample, Spectrogram
 
 
 class PhonemeSequenceCreator:
@@ -23,14 +26,17 @@ class PhonemeSequenceCreator:
         return self._g2p(text)
 
 
-class MelSpectrogramCreator:
+class SpectrogramCreator(ABC):
+    def audio_to_mel_spectrogram(self, input_path: Path, output_path: Path):
+        raise NotImplementedError()
+
+
+class MelSpectrogramCreator(SpectrogramCreator):
     """
-    Converts audio to mel spectrogram in the nvidia/tacotron2 format.
-    This was implemented from scratch using torchaudio, but is compatible with:
-        - NVIDIA tacotron2 implementation (mel2samp - librosa, stft and scipy)
-        - NVIDIA WaveNet implementation (tweaked mel2samp)
-        - NVIDIA WaveGlow implementation (tweaked mel2samp)
-        - SqueezeWave implementation (tweaked mel2samp)
+    Converts audio to log-scaled mel spectrogram format.
+
+    Use Tacotron2SpectrogramCreator implementation instead of this one
+    if you need compatibility with Tacotron2, Waveglow, Wavenet and SqueezeWave.
     """
 
     def __init__(self, sample_rate, n_fft, win_length, hop_length, n_mels):
@@ -56,6 +62,54 @@ class MelSpectrogramCreator:
         mel_spectrogram = spectrogram_to_log_scale(mel_spectrogram)
 
         torch.save(mel_spectrogram, output_path)
+
+
+class Tacotron2SpectrogramCreator(SpectrogramCreator):
+    """
+    Converts audio to log-scaled magnitudes in the nvidia/tacotron2 format.
+
+    This was implemented from scratch using torchaudio, but is compatible with:
+        - NVIDIA tacotron2 implementation (mel2samp - librosa, stft and scipy)
+        - NVIDIA WaveNet implementation (tweaked mel2samp)
+        - NVIDIA WaveGlow implementation (tweaked mel2samp)
+        - SqueezeWave implementation (tweaked mel2samp)
+
+    While called a spectrogram in implementations listed above, this is NOT
+    actually a spectrogram: magnitudes (result of STFT) are not squared, which
+    makes this just a log-scaled mel-basis magnitudes.
+
+    There is also a difference in mel filters used in librosa implementations,
+    details of which are discussed in this github issue under torchaudio:
+    https://github.com/pytorch/audio/issues/287
+    """
+
+    def __init__(self, sample_rate, n_fft, win_length, hop_length, n_mels):
+        self._spectrogram = Spectrogram(
+            n_fft=n_fft,
+            win_length=win_length,
+            hop_length=hop_length,
+            pad=0,
+            power=2,
+            normalized=False,
+        )
+        # librosa mel basis is different than the one used in torchaudio, we need it for compatibility
+        self._mel_scale = librosa.filters.mel(
+            sr=sample_rate, n_fft=n_fft, n_mels=n_mels, fmin=0., fmax=8000.
+        )
+
+    def audio_to_mel_spectrogram(self, input_path: Path, output_path: Path):
+        waveform, sampling_rate = torchaudio.load(input_path)
+        assert waveform.shape[0] == 1
+
+        # shape is always (channel, n_mels, time)
+        spectrogram = self._spectrogram(waveform)
+        spectrogram = spectrogram.sqrt()  # this was most likely a bug in original tacotron implementation
+        spectrogram = torch.tensor(
+            np.dot(self._mel_scale, spectrogram.squeeze().numpy())
+        ).unsqueeze(0)
+        spectrogram = spectrogram_to_log_scale(spectrogram)
+
+        torch.save(spectrogram, output_path)
 
 
 def spectrogram_to_log_scale(x, clip_val=1e-5):

@@ -1,13 +1,13 @@
-md5: 1423e563b51cf68256f6034dcb4af86d
+md5: 4bdc1b46c6230af67a1d9c0558223175
 cmd: python reformer_tts/cli.py download
 wdir: ..
 deps:
-- md5: ff1e7e30147750861ec953b1999c633a
+- md5: d93e57c1c210fd80006184cd01a1e45e
   path: reformer_tts/cli.py
 - md5: c639e9a350a19bda6a6d1c87af3e7d88
   path: reformer_tts/dataset/download.py
-- md5: 26da4d77bde4ba5d4ee2b73e5ac1d973
-  path: config/default.py
+- md5: 1b3706ee20be37364b6353180074b11e
+  path: config/default.yml
 outs:
 - md5: c97215d0b2ffc5cffb834982c4e975f3.dir
   path: data/raw
