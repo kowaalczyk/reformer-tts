@@ -57,25 +57,17 @@ pip install -r requirements.txt
 
 3. Ensure you have `ffmpeg>=3.4,<4.0` installed ([installation instructions](https://www.ffmpeg.org/download.html))
 
+4. For training, ensure you have CUDA and GPU drivers installed (for details, see instructions on PyTorch website)
+
 
 ### 2. Configure tools
 
-1. In order for dvc to have write access to the remote, 
-configure your aws account (using credentials from the csv):
+1. In order for dvc to have write access to the remote, configure your gcp account (using credentials from the generated json file):
 ```shell
-aws configure
-# Copy from provided CSV:
-# - AWS Access Key ID
-# - AWS Secret Access Key
-# 
-# Specify region manually:
-# - Default region name: eu-west-1
-#
-# Leave blank:
-# - Default output format
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/service-account-credentials.json
 ```
 
-*NOTE: if you only need read acces (for reproduction), all you need is to specify the region*
+*NOTE: if you only need read acces (for reproduction), you don't need to perform step 1*
 
 2. Get all of the data - this step needs to be repeated:
     - every time you start working after a break
@@ -92,6 +84,8 @@ dvc pull
 - Use `Python>=3.8`
 - All python dependencies will be in `requirements.txt` 
   as well as in `environment.yml`
+- One central entrypoint for running tasks: `reformer_tts/cli.py`,
+  run `python reformer_tts/cli.py --help` for detailed reference
 
 
 ### Configuration
@@ -101,21 +95,20 @@ Configuration is organized in dataclass structures:
   where the parameters and *default* values are defined - for example,
   dataset config parameters are specified in `reformer_tts.dataset.config`
 - The `reformer_tts.config.Config` class contains all submodules' config settings
-- *Actual* values of config parameters are loaded from configuration files, which
-  define an instance of `Config` class that is loaded by CLI. For convenience,
-  and support for python types, these config files are just plain python files.
+- *Actual* values of config parameters are loaded from configuration files in yaml format, 
+  best practice is to only override defaults in the yaml files
 
 This way, the default values are set close to the place where they are used,
-any config value can be overridden wherever you want, and we take advantage
-of python typing to eliminate unnecessary conversions from strings yaml / json. 
+any config value can be overridden wherever you want 
 
 **To change runtime configuration**
-- create a python file, which imports `reformer_tts.Config`
-- in this file, create `CONFIG` variable, set it to an instance of `Config` 
-  class with its fields set to the values you want 
-- tell CLI to use your config:
-    - using environment variable: `export REFORMER_TTS_CONFIG=/path/to/your_config.py`
-    - command line option: `python reformer_tts/cli.py --config=/path/to/your_config.py`
+- automatically generate configuration with default values using command 
+  `python reformer_tts/cli.py save-config -o config/custom.yml`
+  or manually copy one of the existing configuration files in `config/` directory
+- remove defaults you don't wish to change from the generated config file
+- change values you wish to change in the generated config file
+- specify your config when running cli scripts using `-c` option, ie:
+  `python reformer_tts/cli.py -c config/custom.yml [COMMAND]`
 
 **To add configuration for new module**
 - create `config.py` in your module
@@ -129,14 +122,13 @@ of python typing to eliminate unnecessary conversions from strings yaml / json.
 
 ### Data dependencies
 
-We use [DVC](https://dvc.org/) for defining data processing pipelines,
-with remote set to `s3://reformer-tts/dvc`.
-
-Credentials for DVC have access to entire `reformer-tts` bucket, so that we can 
-use it to create other folders (s3 prefixes) for releasing models, etc.
+We use [DVC](https://dvc.org/) for defining data processing pipelines.
+Remote is set up on Google Cloud Storage, for details run `dvc config list`.
 
 
 ### Setup for running jobs on [entropy cluster](entropy.mimuw.edu.pl)
+
+**this is not 100% supported, as we've decided to use GCP instead of entropy cluster for our project**
 
 Job definition files are located in [`jobs/`](jobs) directory.
 
@@ -146,7 +138,7 @@ File `setup_jobs.sh` was created to help with setting up environment for jobs:
 
 Setup tasks:
 ./setup_jobs.sh dirs - make directories necessary to run the jobs
-./setup_jobs.sh sync - sync all necessary data to /scidatasm/$USER/ partiion
+./setup_jobs.sh sync - sync all necessary data to /scidatasm/kowal/ partiion
 ./setup_jobs.sh clean_users - change usernames in job files to a generic $USER
 ./setup_jobs.sh all - perform all of the setup tasks in sequence
 
@@ -165,6 +157,8 @@ Example:
 
 This will automatically save job output with its name and timestamp in your results folder.
 
+For more details, see example jobs in `jobs/` directory.
+
 
 #### Adding new jobs
 
@@ -180,5 +174,4 @@ in the job file, so that it works for other users. Make sure to include:
 
 ### TODOs
 
-- configure neptune for experiment tracking
-- document hardware specs (GPU) as soon as we set up training
+- document hardware specs (GPU) as soon as we get training to work reliably
