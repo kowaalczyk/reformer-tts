@@ -1,0 +1,16 @@
+data_directory: 'data/lj-speech-tacotron2'
+merged_transcript_csv_path: 'data/lj-speech-tacotron2/transcript.csv'
+audio_directory: 'data/lj-speech-tacotron2/audio'
+mel_directory: 'data/lj-speech-tacotron2/mel'
+dataset:
+  use_tacotron2_spectrograms: true
+  audio_format:
+    max_duration_ms: 768000
+    min_duration_ms: 1000
+    mono: true
+    sampling_rate: 22050
+  mel_format:
+    hop_length: 256
+    n_fft: 1024
+    n_mels: 80
+    win_length: 1024

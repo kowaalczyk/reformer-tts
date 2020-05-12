@@ -2,6 +2,7 @@
 .vscode
 .DS_Store
 .nltk
+lightning_logs
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -132,3 +133,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+causal-fact-276413-605f7c014c56.json

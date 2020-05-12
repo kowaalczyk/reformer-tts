@@ -19,4 +19,3 @@ class AudioGenerator:
             stop = torch.sigmoid(stop_pred) > 0.5
 
         return spectrogram[1, 1:, :]
-

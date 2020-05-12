@@ -1,9 +1,9 @@
 import torch
 from torch import nn
 
+from .config import ReformerDecConfig, ReformerEncConfig, EncoderPreNetConfig, DecoderPreNetConfig, PostConvNetConfig
 from .modules import EncoderPreNet, ScaledPositionalEncoding, DecoderPreNet, PostConvNet
 from .reformer import ReformerEnc, ReformerDec
-from .config import ReformerDecConfig, ReformerEncConfig, EncoderPreNetConfig, DecoderPreNetConfig, PostConvNetConfig
 
 
 class Encoder(nn.Module):

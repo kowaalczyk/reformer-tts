@@ -34,7 +34,7 @@ def get_subset_lengths(length, split_percentages):
     assert sum(split_percentages) == 1, "split_percentages have to sum up to 1"
     assert len(split_percentages) == 3, "expected percentages for exactly 3 subsets"
 
-    test_l = int(length / split_percentages[2]) if split_percentages[2] != 0 else 0
-    val_l = int(length / split_percentages[1]) if split_percentages[1] != 0 else 0
+    test_l = int(length * split_percentages[2]) if split_percentages[2] != 0 else 0
+    val_l = int(length * split_percentages[1]) if split_percentages[1] != 0 else 0
     train_l = length - test_l - val_l
     return train_l, val_l, test_l

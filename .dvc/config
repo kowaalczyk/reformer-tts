@@ -1,4 +1,4 @@
 [core]
-    remote = s3
-['remote "s3"']
-    url = s3://reformer-tts/dvc/
+    remote = gs
+['remote "gs"']
+    url = gs://dvc-reformer-tts/

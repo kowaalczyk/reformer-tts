@@ -13,6 +13,7 @@ class WNConfig:
 @dataclass
 class SqueezeWaveConfig:
     # n_mel_channels depends on dataset config
+    n_mel_channels: int
     n_flows: int = 12
     n_audio_channels: int = 128
     early_return_interval: int = 2  # original name: n_early_every

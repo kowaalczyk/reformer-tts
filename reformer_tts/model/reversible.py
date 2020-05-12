@@ -128,6 +128,7 @@ class _ReversibleFunction(Function):
             y, dy = block.backward_pass(y, dy, **kwargs)
         return dy, None, None
 
+
 ################################################################################
 
 class ReversibleHalfResidual(nn.Module):

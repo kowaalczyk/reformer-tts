@@ -46,7 +46,6 @@ class EncoderPreNet(nn.Module):
             ("dropout3", _get_dropout()),
         ]))
 
-
     def forward(self, input_):
         """
         :param input_: of shape (batch_size, sequence_length)

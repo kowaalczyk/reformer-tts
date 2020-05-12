@@ -22,9 +22,9 @@ def preprocess_lj_speech_data(
         nltk_data_directory: Path,
         audio_format: AudioFormat,
         mel_format: MelFormat,
+        use_tacotron2_spectrograms: bool,
 ):
     phonemizer = C.PhonemeSequenceCreator(nltk_data_directory)
-    mel_creator = C.MelSpectrogramCreator(audio_format.sampling_rate, **asdict(mel_format))
 
     with TemporaryDirectory() as temporary_directory:
         with tarfile.open(archive_path, "r:bz2") as archive:
@@ -48,12 +48,23 @@ def preprocess_lj_speech_data(
             phonemes = " ".join(phonemizer.phonemize(text))
             writer.writerow([title, audio_path, text, phonemes])
 
+    if use_tacotron2_spectrograms:
+        spectrogram_creator = C.Tacotron2SpectrogramCreator(
+            audio_format.sampling_rate,
+            **asdict(mel_format)
+        )
+    else:
+        spectrogram_creator = C.MelSpectrogramCreator(
+            audio_format.sampling_rate,
+            **asdict(mel_format)
+        )
+
     mel_directory.mkdir(parents=True, exist_ok=True)
     audio_files = list(audio_directory.iterdir())
     for audio_file in tqdm(audio_files, desc="Generating mel spectrograms", unit="clip"):
         try:
             spectrogram_file = (mel_directory / audio_file.name).with_suffix(".pt")
-            mel_creator.audio_to_mel_spectrogram(audio_file, spectrogram_file)
+            spectrogram_creator.audio_to_mel_spectrogram(audio_file, spectrogram_file)
         except Exception as e:
             print(f"{e}, {audio_file =}")
             return
@@ -75,7 +86,8 @@ def main(config_path: str, archive_path: Optional[str]):
         mel_directory=config.mel_directory,
         nltk_data_directory=config.nltk_data_directory,
         audio_format=config.dataset.audio_format,
-        mel_format=config.dataset.mel_format
+        mel_format=config.dataset.mel_format,
+        use_tacotron2_spectrograms=config.dataset.use_tacotron2_spectrograms,
     )
 
     print(f"Saved transcript csv to: {config.merged_transcript_csv_path.resolve()}")

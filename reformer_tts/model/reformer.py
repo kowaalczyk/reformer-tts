@@ -1,11 +1,10 @@
 import torch
+from reformer_pytorch import LSHSelfAttention
 from torch import nn
 
-from reformer_pytorch import LSHSelfAttention
-
+from .config import FeedForwardConfig, LSHSelfAttentionConfig
 from .modules import FeedForward
 from .reversible import ReversibleSequence, ReversibleBlock, ReversibleHalfResidual, ReversibleSwap
-from .config import FeedForwardConfig, LSHSelfAttentionConfig
 
 
 # This code fragment comes from https://github.com/lucidrains/reformer-pytorch/tree/master repository
@@ -44,6 +43,7 @@ class Chunk(nn.Module):
     def forward(self, x):
         chunks = x.chunk(self.chunks, dim=self.dim)
         return torch.cat([self.fn(c) for c in chunks], dim=self.dim)
+
 
 ################################################################################
 

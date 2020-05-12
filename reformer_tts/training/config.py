@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class TTSTrainingConfig:
     batch_size: int = 16
@@ -10,7 +11,10 @@ class TTSTrainingConfig:
 
 @dataclass
 class VocoderTrainingConfig:
-    batch_size: int = 8
-    learning_rate: float = 1e-4
+    audio_segment_length: int = 16384
+    batch_size: int = 96  # 96 in original implementation (on V100 GPU)
+    learning_rate: float = 4e-4
     loss_sigma: float = 1.
-    num_visualizations: int = 3
+    num_visualizations: int = 10
+    train_workers: int = 4
+    val_workers: int = 4

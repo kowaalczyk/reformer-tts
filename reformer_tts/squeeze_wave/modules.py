@@ -1,9 +1,9 @@
-from dataclasses import asdict
 from time import time
 
 import torch
 import torch.nn.functional as F
 
+from reformer_tts.config import as_shallow_dict
 from reformer_tts.squeeze_wave.config import WNConfig
 
 
@@ -42,7 +42,7 @@ class InvertibleConv1d(torch.nn.Module):
         )
 
         # Sample a random orthonormal matrix to initialize weights
-        W = torch.qr(torch.Tensor(n_channels, n_channels).normal_())[0]
+        W = torch.qr(torch.empty(n_channels, n_channels).normal_())[0]
 
         # Ensure determinant is 1.0 not -1.0
         if torch.det(W) < 0:
@@ -214,8 +214,7 @@ class WN(torch.nn.Module):
 
         audio = self.start_conv(audio)
         mel_spectrogram = self.cond_layer(mel_spectrogram)
-
-        n_channels_tensor = torch.IntTensor([self.n_channels])
+        n_channels_tensor = torch.tensor([self.n_channels])
         for i in range(self.n_layers):
             layer_offset = i * self.n_layer_channels
             layer_spectrogram = mel_spectrogram[:, layer_offset:layer_offset + self.n_layer_channels, :]
@@ -266,16 +265,9 @@ class SqueezeWave(torch.nn.Module):
             early_return_size: int,  # n_early_size
             wn_config: WNConfig
     ):
-        wn_config = asdict(wn_config)
-        super(SqueezeWave, self).__init__()
-
-        assert n_audio_channels % 2 == 0
-        msg = "WN.in_audio_channels are variable and should not be specified"
-        assert "in_audio_channels" not in wn_config, msg
-        msg = "WN.in_mel_channels need to be specified explicitly"
-        assert "in_mel_channels" not in wn_config, msg
-        msg = "Early_return_size must be divisible by 2"
-        assert early_return_size % 2 == 0, msg
+        super().__init__()
+        assert n_audio_channels % 2 == 0, "n_audio_channels must be divisible by 2"
+        assert early_return_size % 2 == 0, "early_return_size must be divisible by 2"
 
         self.n_flows = n_flows
         self.n_audio_channels = n_audio_channels
@@ -294,7 +286,7 @@ class SqueezeWave(torch.nn.Module):
                 n_half = n_half - self.early_return_size // 2
                 n_remaining_channels = n_remaining_channels - self.early_return_size
             self.inv_conv_layers.append(InvertibleConv1d(n_remaining_channels))
-            self.wn_layers.append(WN(n_half, n_mel_channels, **wn_config))
+            self.wn_layers.append(WN(n_half, n_mel_channels, **as_shallow_dict(wn_config)))
 
         self.n_remaining_channels = n_remaining_channels  # Useful during inference
 
@@ -346,7 +338,7 @@ class SqueezeWave(torch.nn.Module):
         :return:
         """
         l = mel_spectrogram.size(2) * (256 // self.n_audio_channels)
-        audio = torch.Tensor(
+        audio = torch.empty(
             mel_spectrogram.size(0),
             self.n_remaining_channels,
             l
@@ -367,7 +359,7 @@ class SqueezeWave(torch.nn.Module):
             audio = torch.cat([audio_0, audio_1], 1)
             audio = self.inv_conv_layers[k].reverse_forward(audio)
             if self.return_early(k):
-                z = torch.Tensor(
+                z = torch.empty(
                     mel_spectrogram.size(0), self.early_return_size, l
                 ).normal_()
                 if mel_spectrogram.dtype == torch.half:
@@ -375,6 +367,11 @@ class SqueezeWave(torch.nn.Module):
                 audio = torch.cat((sigma * z, audio), 1)
 
         audio = audio.permute(0, 2, 1).contiguous().view(audio.size(0), -1)
+
+        # because our spectrograms are unconstrained, audio can also leak outside of [-1,1] range
+        # (in torchaudio, which is equiv. to [-2**15, 2**15] in the 16-bit wav format),
+        # we fix this in the same way as in squeezewave, wavenet and waveglow:
+        audio = torch.clamp(audio, -1, 1)
         return audio
 
     @staticmethod

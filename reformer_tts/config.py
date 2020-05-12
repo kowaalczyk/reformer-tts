@@ -1,7 +1,8 @@
+import dataclasses
 import importlib.util
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, is_dataclass
 from pathlib import Path, PosixPath, WindowsPath
-from typing import Union, Tuple
+from typing import Union, Tuple, Dict
 
 import dacite as D
 import yaml
@@ -42,7 +43,9 @@ class Config:
         num_mel_coeffs=dataset.mel_format.n_mels,
         dict_size=dataset.dict_size
     )
-    squeeze_wave: SqueezeWaveConfig = SqueezeWaveConfig()
+    squeeze_wave: SqueezeWaveConfig = SqueezeWaveConfig(
+        n_mel_channels=dataset.mel_format.n_mels
+    )
     tts_training: TTSTrainingConfig = TTSTrainingConfig()
     vocoder_training: VocoderTrainingConfig = VocoderTrainingConfig()
 
@@ -87,6 +90,14 @@ class Config:
         # from {path} import {config_variable_name}
         config = getattr(config_module, config_variable_name)
         return config
+
+
+def as_shallow_dict(obj) -> Dict:
+    assert is_dataclass(obj)
+    return {
+        field.name: getattr(obj, field.name)
+        for field in dataclasses.fields(obj.__class__)
+    }
 
 
 def _path_representer(dumper: yaml.Dumper, path: Path):
