@@ -25,6 +25,15 @@ class LSHSelfAttentionConfig:
     post_attn_dropout: float = 0.
     dropout: float = 0.
 
+@dataclass
+class MultiheadAttentionConfig:
+    num_heads: int = 8
+    dropout: float = 0.
+    bias: bool = True
+    add_bias_kv: bool = False
+    add_zero_attn: bool = False
+    kdim: int = None
+    vdim: int = None
 
 @dataclass
 class ReformerEncConfig:
@@ -38,7 +47,7 @@ class ReformerEncConfig:
 class ReformerDecConfig:
     depth: int = 6
     ff_chunks: int = 100
-    attn_kwargs: LSHSelfAttentionConfig = LSHSelfAttentionConfig()
+    attn_kwargs: MultiheadAttentionConfig = MultiheadAttentionConfig()
     self_attn_kwargs: LSHSelfAttentionConfig = LSHSelfAttentionConfig()
     ff_kwargs: FeedForwardConfig = FeedForwardConfig()
 

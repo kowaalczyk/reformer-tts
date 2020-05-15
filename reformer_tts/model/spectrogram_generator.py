@@ -3,7 +3,7 @@ import torch
 from .reformer_tts import ReformerTTS
 
 
-class AudioGenerator:
+class SpectrogramGenerator:
 
     def __init__(self, model):
         assert isinstance(model, ReformerTTS), "model must be instance of ReformerTTS"
@@ -16,6 +16,6 @@ class AudioGenerator:
         while not stop:
             generated, stop_pred = self.model(text, spectrogram)
             spectrogram = torch.cat([spectrogram, generated[:, -1, :].view(1, 1, self.model.num_mel_coeffs)], dim=1)
-            stop = torch.sigmoid(stop_pred) > 0.5
+            stop = torch.sigmoid(stop_pred[0, -1, 0]) > 0.5
 
         return spectrogram[1, 1:, :]

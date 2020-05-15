@@ -136,7 +136,7 @@ class ReversibleHalfResidual(nn.Module):
         super().__init__()
         self.f = Deterministic(f)
 
-    def forward(self, x, f_args={}):
+    def forward(self, x, **f_args):
         x1, x2 = torch.chunk(x, 2, dim=2)
         y1 = None
 
@@ -145,7 +145,7 @@ class ReversibleHalfResidual(nn.Module):
 
         return torch.cat([y1, x2], dim=2)
 
-    def backward_pass(self, y, dy, f_args={}):
+    def backward_pass(self, y, dy, **f_args):
         y1, x2 = torch.chunk(y, 2, dim=2)
         del y
 

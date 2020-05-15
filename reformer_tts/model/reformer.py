@@ -1,3 +1,5 @@
+from typing import Dict
+
 import torch
 from reformer_pytorch import LSHSelfAttention
 from torch import nn
@@ -5,7 +7,6 @@ from torch import nn
 from .config import FeedForwardConfig, LSHSelfAttentionConfig
 from .modules import FeedForward
 from .reversible import ReversibleSequence, ReversibleBlock, ReversibleHalfResidual, ReversibleSwap
-
 
 # This code fragment comes from https://github.com/lucidrains/reformer-pytorch/tree/master repository
 ################################################################################
@@ -54,8 +55,8 @@ class ReformerEnc(nn.Module):
             dim: int,
             depth: int,
             ff_chunks: int,
-            attn_kwargs: LSHSelfAttention,
-            ff_kwargs: FeedForwardConfig,
+            attn_kwargs: Dict,
+            ff_kwargs: Dict,
     ):
         super().__init__()
         self.dim = dim
@@ -93,9 +94,9 @@ class ReformerDec(nn.Module):
             dim: int,
             depth: int,
             ff_chunks: int,
-            attn_kwargs: LSHSelfAttentionConfig,
-            self_attn_kwargs: LSHSelfAttentionConfig,
-            ff_kwargs: FeedForwardConfig,
+            attn_kwargs: Dict,
+            self_attn_kwargs: Dict,
+            ff_kwargs: Dict,
     ):
         super().__init__()
         self.dim = dim
@@ -106,7 +107,7 @@ class ReformerDec(nn.Module):
 
         for _ in range(depth):
             self_attn = LSHSelfAttention(dim, causal=True, **self_attn_kwargs)
-            attn = LSHSelfAttention(dim, causal=False, **attn_kwargs)
+            attn = MultiheadAttentionWrapper(dim, **attn_kwargs)
             # causal has to be false because context is appended to input sequence
             ff = FeedForward(dim, **ff_kwargs)
 
@@ -127,16 +128,42 @@ class ReformerDec(nn.Module):
         self.block_len = 6
         self.layers = ReversibleSequence(nn.ModuleList(blocks))
 
-    def forward(self, x, keys, list_kwargs=None):
+    def forward(self, x, keys, kwargs_list=None):
         x = torch.cat([x, x], dim=-1)
 
-        if list_kwargs is not None:
-            assert len(list_kwargs) == self.block_len * self.depth, "list_kwargs should be the length of ReversibleSequence"
+        if kwargs_list is not None:
+            assert len(kwargs_list) == self.block_len * self.depth, "list_kwargs should be the length of ReversibleSequence"
         else:
-            list_kwargs = [{}] * (6 * self.depth)
+            kwargs_list = [dict() for _ in range(self.block_len * self.depth)]
 
-        for kwargs in list_kwargs[2::6]:  # get all mid_attention kwargs
-            kwargs["keys"] = keys
+        for kwargs in kwargs_list[2::6]:  # get all mid_attention kwargs
+            kwargs["key"] = keys
+            kwargs["value"] = keys
 
-        x = self.layers(x, list_kwargs=list_kwargs)
+        x = self.layers(x, kwargs_list=kwargs_list)
         return torch.stack(x.chunk(2, dim=-1)).sum(dim=0)
+
+
+class MultiheadAttentionWrapper(nn.Module):
+    """This class is introduced to change the order of forward parameters to be
+     compatible with custom reversed framework
+     """
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self.layer = nn.MultiheadAttention(*args, **kwargs)
+
+    def forward(self, query, **kwargs):
+        """
+        query: tensor of shape (batch_size, spec_seq_lenght, embed_dim)
+        kwargs['key']: tensor of shape (batch_size, text_seq_lenght, embed_dim)
+        returns: tensor of shape (batch_size, spec_seq_length, embed_dim
+        """
+        assert 'key' in kwargs, "forward expects keyword argument 'key'"
+
+        query = query.transpose(1, 0)
+        key = kwargs['key'].transpose(1, 0)
+        value = kwargs['key'].transpose(1, 0)
+        kwargs = {k: v for k, v in kwargs.items() if k != "key" and k != "value"}
+        attn_out, _ = self.layer.forward(query, key, value, **kwargs)
+        attn_out = attn_out.transpose(1, 0)
+        return attn_out

@@ -1,3 +1,5 @@
+from typing import Dict
+
 import torch
 from torch import nn
 
@@ -11,12 +13,12 @@ class Encoder(nn.Module):
             self,
             dict_size: int,
             embedding_dim: int,
-            reformer_kwargs: ReformerEncConfig,
-            prenet_kwargs: EncoderPreNetConfig,
+            reformer_kwargs: Dict,
+            prenet_kwargs: Dict,
     ):
         super().__init__()
         self.prenet = EncoderPreNet(
-            num_embeddings=dict_size,
+            num_embeddings=dict_size + 1,  # plus zero -- empty index
             embedding_dim=embedding_dim,
             **prenet_kwargs
         )
@@ -36,9 +38,9 @@ class Decoder(nn.Module):
             self,
             num_mel_coeffs: int,
             embedding_dim: int,
-            prenet_kwargs: DecoderPreNetConfig,
-            reformer_kwargs: ReformerDecConfig,
-            postnet_kwargs: PostConvNetConfig,
+            prenet_kwargs: Dict,
+            reformer_kwargs: Dict,
+            postnet_kwargs: Dict,
     ):
         super().__init__()
         self.prenet = DecoderPreNet(
@@ -70,11 +72,11 @@ class ReformerTTS(nn.Module):
             dict_size: int,
             pad_base: int,
             embedding_dim: int,
-            enc_reformer_kwargs: ReformerEncConfig,
-            enc_prenet_kwargs: EncoderPreNetConfig,
-            dec_prenet_kwargs: DecoderPreNetConfig,
-            dec_reformer_kwargs: ReformerDecConfig,
-            postnet_kwargs: PostConvNetConfig,
+            enc_reformer_kwargs: Dict,
+            enc_prenet_kwargs: Dict,
+            dec_prenet_kwargs: Dict,
+            dec_reformer_kwargs: Dict,
+            postnet_kwargs: Dict,
     ):
         super().__init__()
         self.num_mel_coeffs = num_mel_coeffs
@@ -97,11 +99,13 @@ class ReformerTTS(nn.Module):
         pad_text = pad_to_multiple(text.view((*text.shape, 1)), self.pad_base).view((text.shape[0], -1))
         pad_spec = pad_to_multiple(dec_input, self.pad_base)
         keys = self.enc(pad_text)
-        return self.dec(pad_spec, keys=keys)[:dec_input.shape[1]]
+        mel, stop = self.dec(pad_spec, keys=keys)
+        return mel[:, :dec_input.shape[1]], stop[:, :dec_input.shape[1]]
 
 
 def pad_to_multiple(tensor, pad_base):
     """
+    This function pads the sequence to be divisible by pad_base.
     Assumed tensor is of shape (batch, seq_len, channels)
     """
     new_len = ((tensor.shape[1] - 1) // pad_base + 1) * pad_base

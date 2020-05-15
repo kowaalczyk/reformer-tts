@@ -11,6 +11,7 @@ from pytorch_lightning.loggers import NeptuneLogger
 from reformer_tts.config import Config
 from reformer_tts.dataset.download import download_speech_videos_and_transcripts
 from reformer_tts.dataset.preprocess import preprocess_data
+from reformer_tts.training.train_tts import train_tts as train_tts_function
 from reformer_tts.training.wrappers import LitSqueezeWave
 
 
@@ -20,6 +21,14 @@ from reformer_tts.training.wrappers import LitSqueezeWave
 def cli(ctx: Context, config):
     ctx.ensure_object(dict)
     ctx.obj["CONFIG"] = Config.from_yaml_file(config)
+
+
+@cli.command()
+@click.pass_context
+def train_tts(ctx: Context):
+    config = ctx.obj["CONFIG"]
+    train_tts_function(config)
+
 
 
 @cli.command()
@@ -73,7 +82,7 @@ def train_vocoder(ctx: Context, experiment_name: str):
             **asdict(config),
             **asdict(config.dataset),
             **asdict(config.squeeze_wave),
-            **asdict(config.vocoder_training),
+            **asdict(config.experiment.vocoder_training),
         }
     )
     checkpoint_callback = ModelCheckpoint(
@@ -111,7 +120,7 @@ def show_config(ctx: Context):
 def save_config(ctx: Context, output):
     """ Save all config variables (defaults + overrides from config file) """
     config = ctx.obj["CONFIG"]
-    config.to_yaml_fle(output)
+    config.to_yaml_file(output)
     print(f"Config saved to {output}")
 
 

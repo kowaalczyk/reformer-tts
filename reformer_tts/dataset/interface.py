@@ -30,7 +30,7 @@ class TextToSpectrogramDataset(Dataset):
             idx = int(idx[0])
 
         phonemes = self.transcripts_df.loc[idx, "phonemes"]
-        phoneme_indices = torch.tensor([self.phoneme_to_idx[p] for p in phonemes.split()], dtype=torch.long)
+        phoneme_indices = torch.LongTensor([self.phoneme_to_idx[p] for p in phonemes.split()])
 
         audio_path = Path(self.transcripts_df.loc[idx, "audio_path"])
         spectrogram_path = Path(self.mel_directory / audio_path.name) \

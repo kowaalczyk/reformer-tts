@@ -10,7 +10,7 @@ import yaml
 from reformer_tts.dataset.config import DatasetConfig
 from reformer_tts.model.config import ReformerTTSConfig
 from reformer_tts.squeeze_wave.config import SqueezeWaveConfig
-from .training.config import TTSTrainingConfig, VocoderTrainingConfig
+from reformer_tts.training.config import ExperimentConfig, TTSTrainingConfig, VocoderTrainingConfig
 
 
 @dataclass
@@ -46,10 +46,11 @@ class Config:
     squeeze_wave: SqueezeWaveConfig = SqueezeWaveConfig(
         n_mel_channels=dataset.mel_format.n_mels
     )
+    experiment: ExperimentConfig = ExperimentConfig()
     tts_training: TTSTrainingConfig = TTSTrainingConfig()
     vocoder_training: VocoderTrainingConfig = VocoderTrainingConfig()
 
-    def to_yaml_fle(self, path: Union[str, Path]):
+    def to_yaml_file(self, path: Union[str, Path]):
         """  Saves current config (incl. defaults) to yaml file at path """
         config_dict = asdict(self)
         with open(path, "w") as config_file:

@@ -15,14 +15,14 @@ def custom_sequence_padder(batch):
 
     spectrograms = [e['spectrogram'] for e in batch]
     spectrograms = pad_sequence(spectrograms, batch_first=True)
-    start_token = torch.zeros((spectrograms.shape[0], 1, spectrograms.shape[2]))
+    start_token = torch.zeros((spectrograms.shape[0], 1, spectrograms.shape[2]), device=torch.device('cpu'))
     spectrograms = torch.cat([start_token, spectrograms], dim=1)
 
-    length_ind = torch.tensor([len(e['phonemes']) - 1 for e in batch], dtype=torch.long)
-    lengths_matrix = torch.zeros_like(phonemes)
-    lengths_matrix[torch.arange(len(length_ind)), length_ind] = 1
+    length_ind = torch.tensor([len(e['spectrogram']) - 1 for e in batch], dtype=torch.long, device=torch.device('cpu'))
+    lengths_matrix = torch.zeros((spectrograms.shape[0], spectrograms.shape[1]), device=torch.device('cpu'))
+    lengths_matrix[torch.arange(len(length_ind), device=torch.device('cpu')), length_ind] = 1
 
-    return {"phonemes": phonemes, "spectrogram": spectrograms, "stop_tokens": lengths_matrix}
+    return {"phonemes": phonemes, "spectrogram": spectrograms, "stop_tokens": lengths_matrix[:, 1:]}
 
 
 def get_subset_lengths(length, split_percentages):
