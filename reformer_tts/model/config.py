@@ -71,7 +71,7 @@ class PostConvNetConfig:
 @dataclass
 class ReformerTTSConfig:
     num_mel_coeffs: int
-    dict_size: int = 75
+    dict_size: int
     embedding_dim: int = 512
     pad_base: int = 128  # should be divisible by 2x any bucket size from sub-configs
     enc_prenet_kwargs: EncoderPreNetConfig = EncoderPreNetConfig()

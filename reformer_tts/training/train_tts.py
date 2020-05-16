@@ -29,9 +29,9 @@ def train_tts(config: Config):
             **asdict(config),
             **asdict(config.dataset),
             **asdict(config.squeeze_wave),
-            **asdict(config.experiment.vocoder_training),
+            **asdict(config.experiment.tts_training),
         },
-        tags=["reformer-tts"]
+        tags=["reformer-tts"] + config.experiment.tags.split()
     )
 
     model = LitReformerTTS(config, on_gpu=on_gpu)

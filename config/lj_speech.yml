@@ -3,6 +3,7 @@ merged_transcript_csv_path: 'data/lj-speech/transcript.csv'
 audio_directory: 'data/lj-speech/audio'
 mel_directory: 'data/lj-speech/mel'
 dataset:
+  dict_size: 76
   audio_format:
     max_duration_ms: 768000
     min_duration_ms: 1000
@@ -13,3 +14,7 @@ dataset:
     n_fft: 1024
     n_mels: 80
     win_length: 1024
+
+model:
+  dict_size: 76
+  num_mel_coeffs: 80

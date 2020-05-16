@@ -47,8 +47,6 @@ class Config:
         n_mel_channels=dataset.mel_format.n_mels
     )
     experiment: ExperimentConfig = ExperimentConfig()
-    tts_training: TTSTrainingConfig = TTSTrainingConfig()
-    vocoder_training: VocoderTrainingConfig = VocoderTrainingConfig()
 
     def to_yaml_file(self, path: Union[str, Path]):
         """  Saves current config (incl. defaults) to yaml file at path """
