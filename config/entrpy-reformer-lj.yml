@@ -26,7 +26,7 @@ experiment:
     batch_size: 32
     weight_decay: 0.0001
   save_top_k_checkpoints: 5
-  checkpoints_dir = "/results/mo382777"
+  checkpoints_dir: "/results/mo382777"
 
 model:
   dict_size: 76
