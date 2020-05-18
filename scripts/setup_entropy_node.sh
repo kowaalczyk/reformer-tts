@@ -2,8 +2,10 @@
 
 cd /scidatalg
 mkdir /scidatalg/reformer-tts
-chmod a+rwx /scidatalg/reformer-tts
 cd /scidatalg/reformer-tts
+setfacl -R -m u:tm385898:rwx .
+setfacl -R -m u:mo382777:rwx .
+setfacl -R -m u:kk385830:rwx .
 
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh -b -p ./miniconda3

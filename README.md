@@ -128,6 +128,27 @@ Remote is set up on Google Cloud Storage, for details run `dvc config list`.
 
 ### Setup for running jobs on [entropy cluster](entropy.mimuw.edu.pl)
 
+Nodes prepared for running:
+* asusgpu3
+* asusgpu4
+
+#### Running training on specific node
+Before runing:
+* chose node from already prepared or prepare new one using instructions below
+* copy repository to your home dir
+* make sure NEPTUNE API TOKEN is set in your environment
+
+To run training:
+* prepare training config and push it onto remote repository
+* login to chosen node using interactive session `srun --qos=gsn --parition=student --nodelist=<name_of_chosen_node> --pty /bin/bash`
+* goto `/scidatalg/reformer-tts/reformer-tts/` make sure repository is pulled and on proper branch
+* log back to login node
+* copy and modify `train_entropy.sbatch` - fill node name and training command
+* run `sbatch your/job/script/location.sbatch`
+
+
+#### New node preparation
+
 Since /scidatasm directory is not syncing while we want to train we have to setup training on each node separately by hand. To setup env on new node follow this instuctions:
 
 **Note**: only nodes with /scidatalg are supported by this scripts. These nodes are: asusgpu4, asusgpu3, asusgpu2, asusgpu1, arnold, sylvester
@@ -136,16 +157,7 @@ Since /scidatasm directory is not syncing while we want to train we have to setu
 * copy the content of `scripts/setup_entropy_node.sh` to new file in home dir (again using editor)
 * run copied script
 
-To run training on a node:
-* prepare training config and push it onto remote repository
-* login to chosen node using interactive session `srun --qos=gsn --parition=student --nodelist=<name_of_chosen_node> --pty /bin/bash`
-* goto `/scidatalg/reformer-tts/reformer-tts/` make sure repository is pulled and on proper branch
-* go back to login node
-* copy and modify `train_entrophy.sbatch` - fill node name and training command
-* run `sbatch your/job/script/location.sbatch`
-
-
-**this is not 100% supported, as we've decided to use GCP instead of entropy cluster for our project**
+<!-- **this is not 100% supported, as we've decided to use GCP instead of entropy cluster for our project**
 
 Job definition files are located in [`jobs/`](jobs) directory.
 
@@ -174,10 +186,10 @@ Example:
 
 This will automatically save job output with its name and timestamp in your results folder.
 
-For more details, see example jobs in `jobs/` directory.
+For more details, see example jobs in `jobs/` directory. -->
 
 
-#### Adding new jobs
+<!-- #### Adding new jobs
 
 Before sharing your job file with others, document what changes need to be made
 in the job file, so that it works for other users. Make sure to include:
@@ -186,7 +198,7 @@ in the job file, so that it works for other users. Make sure to include:
    (see [related docs](https://help.rc.ufl.edu/doc/Using_Variables_in_SLURM_Jobs))
 2. Directories that need to be created (otherwise the script will crash)
 3. Results that need to be moved (jobs save results in /results/ partitions,
-   usually we'll want to add results to dvc or some other local path)
+   usually we'll want to add results to dvc or some other local path) -->
 
 
 ### TODOs
