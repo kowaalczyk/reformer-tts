@@ -8,4 +8,4 @@
 
 cd /scidatalg/reformer-tts/reformer-tts
 conda activate reformer-tts
-python -m reformer-tts.cli --config /scidatalg/reformer-tts/reformer-tts/config/entrpy-reformer-lj.yml train-tts
+python -m reformer_tts.cli --config /scidatalg/reformer-tts/reformer-tts/config/entrpy-reformer-lj.yml train-tts

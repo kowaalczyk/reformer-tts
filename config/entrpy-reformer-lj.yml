@@ -23,7 +23,7 @@ experiment:
   val_workers: 8
   tags: "lf_speech_tacotron2 entropy"
   tts_training:
-    batch_size: 32
+    batch_size: 24
     weight_decay: 0.0001
   save_top_k_checkpoints: 5
   checkpoints_dir: "/results/mo382777"
