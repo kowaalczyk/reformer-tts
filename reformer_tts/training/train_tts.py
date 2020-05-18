@@ -28,7 +28,7 @@ def train_tts(config: Config):
         params={
             **asdict(config),
             **asdict(config.dataset),
-            **asdict(config.squeeze_wave),
+            **asdict(config.model),
             **asdict(config.experiment.tts_training),
         },
         tags=["reformer-tts"] + config.experiment.tags.split()
@@ -46,10 +46,10 @@ def train_tts(config: Config):
         prefix='',
     )
 
-    if config.tts_training.early_stopping_epochs is not None:
+    if config.experiment.tts_training.early_stopping_epochs is not None:
         early_stop_callback = EarlyStopping(
             monitor='val_loss',
-            patience=config.tts_training.early_stopping_epochs,
+            patience=config.experiment.tts_training.early_stopping_epochs,
             verbose=True,
         )
     else:
