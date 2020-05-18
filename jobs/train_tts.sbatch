@@ -1,11 +1,25 @@
-# !/bin/bash
+#!/bin/bash
 
-#SBATCH --job-name=reformer-tts-test
+#SBATCH --job-name=asusgpu3_test
 #SBATCH --qos=gsn
 #SBATCH --partition=common
 #SBATCH --gres=gpu:1
-#SBATCH --nodelist=asusgpu4
+#SBATCH --nodelist=asusgpu3
+#SBATCH --output=/results/mo382777/asusgpu3.out.txt
+#SBATCH --export=ALL,PATH="/scidatalg/reformer-tts/miniconda3/bin:${PATH}"
 
 cd /scidatalg/reformer-tts/reformer-tts
+__conda_setup="$('/scidatalg/reformer-tts/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/scidatalg/reformer-tts/miniconda3/etc/profile.d/conda.sh" ]; then
+        . "/scidatalg/reformer-tts/miniconda3/etc/profile.d/conda.sh"
+    else
+        export PATH="/scidatalg/reformer-tts/miniconda3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+
 conda activate reformer-tts
 python -m reformer_tts.cli --config /scidatalg/reformer-tts/reformer-tts/config/entrpy-reformer-lj.yml train-tts
