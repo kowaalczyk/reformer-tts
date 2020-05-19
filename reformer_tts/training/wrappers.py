@@ -28,7 +28,8 @@ class LitReformerTTS(pl.LightningModule):
         self.val_batch_size = self.config.experiment.tts_training.batch_size
         self.train_batch_size = self.config.experiment.tts_training.batch_size
         self.sample_idx = 0
-        self.dataloader_workers = 4
+        self.val_num_workers = self.config.experiment.val_workers
+        self.train_num_workers = self.config.experiment.train_workers
         self.on_gpu = on_gpu
 
     def forward(self, text, spec):
@@ -45,35 +46,34 @@ class LitReformerTTS(pl.LightningModule):
         self.train_set, self.val_set, self.test_set = random_split(dataset, lengths)
 
     def training_step(self, batch, batch_idx):
-        pred, stop = self.forward(batch['phonemes'], batch['spectrogram'][:, :-1, :])
-        pred_loss = mse_loss(pred, batch['spectrogram'][:, 1:, :])
-        stop_loss = binary_cross_entropy_with_logits(
-            stop.view(stop.shape[0], -1),
-            batch['stop_tokens'],
-            pos_weight=self.pos_weight
-        )
-        loss = pred_loss + stop_loss
-        logs = {'train_stop_loss': stop_loss,
-                'train_pred_loss': pred_loss,
-                'train_loss': loss,
-                }
+        loss, pred_loss, stop_loss = self.calculate_loss(batch)
+        logs = {
+            'train_stop_loss': stop_loss,
+            'train_pred_loss': pred_loss,
+            'train_loss': loss,
+        }
         return {'loss': loss, 'log': logs}
 
     def validation_step(self, batch, batch_idx):
-        pred, stop = self.forward(batch['phonemes'], batch['spectrogram'][:, :-1, :])
-        pred_loss = mse_loss(pred, batch['spectrogram'][:, 1:, :])
-        stop_loss = binary_cross_entropy_with_logits(
-            stop.view(stop.shape[0], -1),
-            batch['stop_tokens'],
-            pos_weight=self.pos_weight
-        )
-        loss = pred_loss + stop_loss
-        result = {
+        loss, pred_loss, stop_loss = self.calculate_loss(batch)
+        return {
             'stop_loss': stop_loss,
             'pred_loss': pred_loss,
             'loss': loss,
         }
-        return result
+
+    def calculate_loss(self, batch):
+        pred, stop = self.forward(batch['phonemes'], batch['spectrogram'][:, :-1, :])
+        assert pred.shape == batch["loss_mask"].shape
+        masked_pred = pred * batch["loss_mask"]
+        pred_loss = mse_loss(masked_pred, batch['spectrogram'][:, 1:, :])
+        stop_loss = binary_cross_entropy_with_logits(
+            stop.view(stop.shape[0], -1),
+            batch['stop_tokens'],
+            pos_weight=self.pos_weight
+        )
+        loss = pred_loss + stop_loss
+        return loss, pred_loss, stop_loss
 
     def validation_epoch_end(self, outputs):
         val_loss = sum([o['loss'] for o in outputs]) / len(outputs)
@@ -104,7 +104,7 @@ class LitReformerTTS(pl.LightningModule):
             batch_size=self.train_batch_size,
             drop_last=True,
             collate_fn=custom_sequence_padder,
-            num_workers=self.dataloader_workers,
+            num_workers=self.train_num_workers,
         )
 
     @pl.data_loader
@@ -114,7 +114,7 @@ class LitReformerTTS(pl.LightningModule):
             batch_size=self.val_batch_size,
             drop_last=True,
             collate_fn=custom_sequence_padder,
-            num_workers=self.dataloader_workers,
+            num_workers=self.val_num_workers,
         )
 
     def configure_optimizers(self):

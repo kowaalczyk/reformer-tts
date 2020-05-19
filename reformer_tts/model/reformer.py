@@ -65,7 +65,6 @@ class ReformerEnc(nn.Module):
         blocks = []
         norm_type = nn.LayerNorm
 
-        print(depth)
         for _ in range(depth):
             self_attn = LSHSelfAttention(dim, causal=False, **attn_kwargs)
             ff = FeedForward(dim, **ff_kwargs)
