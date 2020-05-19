@@ -86,7 +86,7 @@ class LitReformerTTS(pl.LightningModule):
                 'val_pred_loss': sum([o['pred_loss'] for o in outputs]) / len(outputs),
                 'val_loss': val_loss,
                 }
-        logs = {k: v.item() for k, v in logs.items()}
+        # logs = {k: v.item() for k, v in logs.items()}
         samples = self.prepare_samples()
         for sample in samples:
             with NamedTemporaryFile(suffix=".png") as f:
