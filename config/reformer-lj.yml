@@ -21,7 +21,7 @@ experiment:
   max_epochs: 1000
   train_workers: 8
   val_workers: 8
-  tags: "lf_speech_tacotron2 first_proper_training"
+  tags: "lf_speech_tacotron2 more_regularization"
   tts_training:
     batch_size: 32
     weight_decay: 0.0001
@@ -30,3 +30,10 @@ experiment:
 model:
   dict_size: 76
   num_mel_coeffs: 80
+  scp_encoding_dropout: 0.05
+  postnet_kwargs:
+    dropout: 0.1
+  enc_prenet_kwargs:
+    dropout: 0.05
+  dec_prenet_kwargs:
+    dropout: 0.05

@@ -13,6 +13,7 @@ class Encoder(nn.Module):
             self,
             dict_size: int,
             embedding_dim: int,
+            scp_encoding_dropout: float,
             reformer_kwargs: Dict,
             prenet_kwargs: Dict,
     ):
@@ -22,7 +23,7 @@ class Encoder(nn.Module):
             embedding_dim=embedding_dim,
             **prenet_kwargs
         )
-        self.positional_encoding = ScaledPositionalEncoding(embedding_dim)
+        self.positional_encoding = ScaledPositionalEncoding(embedding_dim, scp_encoding_dropout)
         self.reformer = ReformerEnc(embedding_dim, **reformer_kwargs)
 
     def forward(self, input_):
@@ -38,6 +39,7 @@ class Decoder(nn.Module):
             self,
             num_mel_coeffs: int,
             embedding_dim: int,
+            scp_encoding_dropout: float,
             prenet_kwargs: Dict,
             reformer_kwargs: Dict,
             postnet_kwargs: Dict,
@@ -48,7 +50,7 @@ class Decoder(nn.Module):
             output_size=embedding_dim,
             **prenet_kwargs
         )
-        self.positional_encoding = ScaledPositionalEncoding(embedding_dim)
+        self.positional_encoding = ScaledPositionalEncoding(embedding_dim, scp_encoding_dropout)
         self.reformer = ReformerDec(embedding_dim, **reformer_kwargs)
         self.mel_linear = nn.Linear(embedding_dim, num_mel_coeffs)
         self.stop_linear = nn.Linear(embedding_dim, 1)
@@ -72,6 +74,7 @@ class ReformerTTS(nn.Module):
             dict_size: int,
             pad_base: int,
             embedding_dim: int,
+            scp_encoding_dropout: float,
             enc_reformer_kwargs: Dict,
             enc_prenet_kwargs: Dict,
             dec_prenet_kwargs: Dict,
@@ -83,12 +86,14 @@ class ReformerTTS(nn.Module):
         self.enc = Encoder(
             dict_size=dict_size,
             embedding_dim=embedding_dim,
+            scp_encoding_dropout=scp_encoding_dropout,
             reformer_kwargs=enc_reformer_kwargs,
             prenet_kwargs=enc_prenet_kwargs,
         )
         self.dec = Decoder(
             num_mel_coeffs=num_mel_coeffs,
             embedding_dim=embedding_dim,
+            scp_encoding_dropout=scp_encoding_dropout,
             prenet_kwargs=dec_prenet_kwargs,
             reformer_kwargs=dec_reformer_kwargs,
             postnet_kwargs=postnet_kwargs,

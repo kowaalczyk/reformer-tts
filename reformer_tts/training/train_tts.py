@@ -39,17 +39,17 @@ def train_tts(config: Config):
 
     checkpoint_callback = ModelCheckpoint(
         filepath=os.path.join(experiment_dir, "{epoch}-{val_loss:.2f}"),
-        save_top_k=True,
+        save_top_k=config.experiment.save_top_k_checkpoints,
         verbose=True,
         monitor='val_loss',
         mode='min',
         prefix='',
     )
 
-    if config.tts_training.early_stopping_epochs is not None:
+    if config.experiment.tts_training.early_stopping_epochs is not None:
         early_stop_callback = EarlyStopping(
             monitor='val_loss',
-            patience=config.tts_training.early_stopping_epochs,
+            patience=config.experiment.tts_training.early_stopping_epochs,
             verbose=True,
         )
     else:

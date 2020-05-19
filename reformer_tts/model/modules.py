@@ -32,6 +32,7 @@ class EncoderPreNet(nn.Module):
             return nn.Dropout(p=dropout)
 
         self.convolutions = nn.Sequential(OrderedDict([
+            ("dropout0", _get_dropout()),
             ("conv1", _get_conv()),
             ("bn1", _get_batchnorm()),
             ("relu1", nn.ReLU()),
@@ -177,11 +178,12 @@ class PostConvNet(nn.Module):
 
 
 class ScaledPositionalEncoding(nn.Module):
-    def __init__(self, d_model):
+    def __init__(self, d_model, dropout):
         super().__init__()
         inv_freq = 1. / (10000 ** (torch.arange(0, d_model, 2).float() / d_model))
         self.register_buffer('inv_freq', inv_freq)
         self.alpha = nn.Parameter(torch.empty(1).normal_(0, 1))
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, input_):
         """
@@ -193,7 +195,8 @@ class ScaledPositionalEncoding(nn.Module):
         s = sinusoid_inp.sin().view(sinusoid_inp.shape[0], sinusoid_inp.shape[1], 1)
         c = sinusoid_inp.cos().view(sinusoid_inp.shape[0], sinusoid_inp.shape[1], 1)
         sc = torch.cat([s, c], dim=2).view(sinusoid_inp.shape[0], 2 * sinusoid_inp.shape[1])
-        input_ = input_ + self.alpha * sc
+        sc_drop = self.dropout(sc)
+        input_ = input_ + self.alpha * sc_drop
         return input_
 
 

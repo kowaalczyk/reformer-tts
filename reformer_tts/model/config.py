@@ -74,6 +74,7 @@ class ReformerTTSConfig:
     dict_size: int
     embedding_dim: int = 512
     pad_base: int = 128  # should be divisible by 2x any bucket size from sub-configs
+    scp_encoding_dropout: float = 0.05
     enc_prenet_kwargs: EncoderPreNetConfig = EncoderPreNetConfig()
     enc_reformer_kwargs: ReformerEncConfig = ReformerEncConfig()
     dec_prenet_kwargs: DecoderPreNetConfig = DecoderPreNetConfig()
