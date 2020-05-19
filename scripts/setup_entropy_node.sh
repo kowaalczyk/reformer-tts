@@ -3,6 +3,7 @@
 cd /scidatalg
 mkdir /scidatalg/reformer-tts
 cd /scidatalg/reformer-tts
+cp ${HOME}/gcp-cred.json .
 setfacl -R -m u:tm385898:rwx .
 setfacl -R -m u:mo382777:rwx .
 setfacl -R -m u:kk385830:rwx .
@@ -22,7 +23,7 @@ else
 fi
 unset __conda_setup
 
-export GOOGLE_APPLICATION_CREDENTIALS="${HOME}/gcp-cred.json"
+export GOOGLE_APPLICATION_CREDENTIALS="/scidatalg/reformer-tts/gcp-cred.json"
 
 git clone https://github.com/kowaalczyk/reformer-tts.git
 cd reformer-tts

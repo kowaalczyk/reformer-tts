@@ -1,14 +1,13 @@
 #!/bin/bash
 
-
-#SBATCH --job-name=asusgpu3_test
+#SBATCH --job-name=dvc_pull
 #SBATCH --qos=gsn
 #SBATCH --partition=common
 #SBATCH --gres=gpu:1
-#SBATCH --output=/results/reformer-tts/asusgpu3.out.txt
 #SBATCH --export=ALL,PATH="/scidatalg/reformer-tts/miniconda3/bin:${PATH}"
 
 #SBATCH --nodelist=<node_name> # HERE change node name here
+#SBATCH --output=/results/reformer-tts/dvc_pull.txt   # HERE you may want to change this also
 
 cd /scidatalg/reformer-tts/reformer-tts
 __conda_setup="$('/scidatalg/reformer-tts/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
@@ -24,6 +23,7 @@ fi
 unset __conda_setup
 
 conda activate reformer-tts
+export GOOGLE_APPLICATION_CREDENTIALS="/scidatalg/reformer-tts/gcp-cred.json"
 
 # HERE change command here
-python -m reformer_tts.cli --config /scidatalg/reformer-tts/reformer-tts/config/entrpy-reformer-lj.yml train-tts
+dvc pull data_pipeline/lj_speech_tacotron2.dvc
