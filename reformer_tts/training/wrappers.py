@@ -85,7 +85,7 @@ class LitReformerTTS(pl.LightningModule):
         samples = self.prepare_samples()
         for sample in samples:
             with NamedTemporaryFile(suffix=".png") as f:
-                plot_spectrogram(sample.transpose(1, 0).unsqueeze(0), scale=False)
+                plot_spectrogram(sample.transpose(1, 0).unsqueeze(0).cpu(), scale=False)
                 plt.savefig(f.name)
                 self.logger.log_image("sample-image", f.name)
                 self.sample_idx += 1
