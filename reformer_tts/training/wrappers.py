@@ -66,7 +66,7 @@ class LitReformerTTS(pl.LightningModule):
 
     def calculate_loss(self, batch):
         input_spec = batch['spectrogram']
-        if self.tranform is not None:
+        if self.transform is not None:
             input_spec[:, 1:, :] = self.transform(input_spec[:, 1:, :])
         pred, stop = self.forward(batch['phonemes'], input_spec[:, :-1, :])
         assert pred.shape == batch["loss_mask"].shape

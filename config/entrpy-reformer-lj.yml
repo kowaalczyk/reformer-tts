@@ -17,11 +17,11 @@ dataset:
     win_length: 1024
 
 experiment:
-  experiment_name: "entropy multigpu noise"
+  experiment_name: "entropy-noise"
   max_epochs: 80
   train_workers: 16
   val_workers: 16
-  tags: "lf_speech_tacotron2 entropy"
+  tags: "lf_speech_tacotron2 entropy noise multigpu"
   tts_training:
     batch_size: 48
     weight_decay: 0.0003
