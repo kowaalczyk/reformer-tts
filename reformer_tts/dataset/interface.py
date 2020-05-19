@@ -25,7 +25,7 @@ class TextToSpectrogramDataset(Dataset):
     def __getitem__(self, idx: Union[torch.Tensor, np.array, int]) -> Dict[str, Any]:
         """
         :param idx: index or single-element tensor / numpy array
-        :return: { phonemes: Tensor(len), spectrogram: Tensor(len x n_mels) }
+        :return: { phonemes: Tensor(len), spectrogram: Tensor(len x n_mels), idx:int }
         """
         if hasattr(idx, '__getitem__'):
             idx = int(idx[0])

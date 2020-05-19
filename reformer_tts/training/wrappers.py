@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, random_split
 
 from reformer_tts.config import Config, as_shallow_dict
 from reformer_tts.dataset.interface import TextToSpectrogramDataset, SpectrogramToSpeechDataset
-from reformer_tts.dataset.utils import custom_sequence_padder, get_subset_lengths
+from reformer_tts.dataset.utils import custom_sequence_padder, get_subset_lengths, AddGaussianNoise
 from reformer_tts.dataset.visualize import plot_spectrogram
 from reformer_tts.model.reformer_tts import ReformerTTS
 from reformer_tts.squeeze_wave.loss import SqueezeWaveLoss
@@ -31,6 +31,8 @@ class LitReformerTTS(pl.LightningModule):
         self.val_num_workers = self.config.experiment.val_workers
         self.train_num_workers = self.config.experiment.train_workers
         self.on_gpu = on_gpu
+        noise_std = config.experiment.tts_training.noise_std 
+        self.transform = AddGaussianNoise(mean=0, std=noise_std) if noise_std is not None else None
 
     def forward(self, text, spec):
         if self.on_gpu:
@@ -40,7 +42,7 @@ class LitReformerTTS(pl.LightningModule):
     def prepare_data(self):
         dataset = TextToSpectrogramDataset(
             self.config.merged_transcript_csv_path,
-            self.config.mel_directory
+            self.config.mel_directory,
         )
         lengths = get_subset_lengths(len(dataset), self.config.dataset.split_percentages)
         self.train_set, self.val_set, self.test_set = random_split(dataset, lengths)
@@ -63,7 +65,10 @@ class LitReformerTTS(pl.LightningModule):
         }
 
     def calculate_loss(self, batch):
-        pred, stop = self.forward(batch['phonemes'], batch['spectrogram'][:, :-1, :])
+        input_spec = batch['spectrogram']
+        if self.tranform is not None:
+            input_spec[:, 1:, :] = self.transform(input_spec[:, 1:, :])
+        pred, stop = self.forward(batch['phonemes'], input_spec[:, :-1, :])
         assert pred.shape == batch["loss_mask"].shape
         masked_pred = pred * batch["loss_mask"]
         pred_loss = mse_loss(masked_pred, batch['spectrogram'][:, 1:, :])
