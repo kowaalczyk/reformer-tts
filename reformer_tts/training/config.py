@@ -11,6 +11,7 @@ class TTSTrainingConfig:
     early_stopping_epochs: Optional[int] = None
     weight_decay: int = 1e-4
     noise_std: Optional[float] = None
+    gpus: Optional[int] = None
 
 
 @dataclass

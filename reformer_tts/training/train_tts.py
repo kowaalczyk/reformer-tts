@@ -16,10 +16,12 @@ def train_tts(config: Config):
     if torch.cuda.is_available():
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
         on_gpu = True
-        gpus = 1  # todo: config?
+        gpus = config.experiment.tts_training.gpus
     else:
         on_gpu = False
         gpus = 0
+
+    distributed_backend = 'dp' if gpus > 1 else None
 
     max_epochs = config.experiment.max_epochs
     neptune_logger = NeptuneLogger(
@@ -63,5 +65,6 @@ def train_tts(config: Config):
         early_stop_callback=early_stop_callback,
         log_save_interval=50,
         row_log_interval=5,
+        distributed_backend=distributed_backend
     )
     trainer.fit(model)

@@ -25,6 +25,8 @@ experiment:
   tts_training:
     batch_size: 24
     weight_decay: 0.0001
+    gpus: 2
+    noise_std: 0.002
   save_top_k_checkpoints: 5
   checkpoints_dir: "/results/reformer-tts"
 
