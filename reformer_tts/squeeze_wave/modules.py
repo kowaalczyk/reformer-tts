@@ -76,10 +76,11 @@ class InvertibleConv1d(torch.nn.Module):
         # reverse forward computation, cache W_inverse for improved speed
         if not hasattr(self, 'W_inverse'):
             # Reverse computation
-            W_inverse = W.inverse()
+            W_inverse = W.float().inverse()
+            W_inverse = W_inverse[..., None]
             if z.dtype == torch.half:
                 W_inverse = W_inverse.half()
-            self.W_inverse = W_inverse[..., None]
+            self.W_inverse = W_inverse
         z = F.conv1d(z, self.W_inverse, bias=None, stride=1, padding=0)
         return z
 
@@ -416,30 +417,3 @@ def _fuse_conv_and_bn(
     fused_conv.bias.data = (b_conv + b)
 
     return fused_conv
-
-
-# TODO: How do we want to organize tests?
-if __name__ == '__main__':
-    wn_config = WNConfig(8, 256, 3, 2)
-    sw = SqueezeWave(12, 128, 80, 2, 16, wn_config)
-    sw = SqueezeWave.remove_norms(sw)
-    sw = sw.eval()
-
-    n_benchmarks = 3
-    total_time = 0
-    for _ in range(n_benchmarks):
-        zero_mel = torch.zeros(24, 80, 1024)
-        start = time()
-        with torch.no_grad():
-            audio = sw.infer(zero_mel)
-        end = time()
-        total_time += end - start
-        print(f"{total_time = :.2f}")
-    avg_time = total_time / n_benchmarks
-
-    expected_gen_rate = 123000 / 22050  # based on largest model in the paper
-    audio_len_in_s = 1024 * 256 / 22050
-    expected_avg_time = audio_len_in_s / expected_gen_rate
-
-    slowdown_rate = avg_time / expected_avg_time
-    print(f"{slowdown_rate = :.4f}: {avg_time = :.2f}, {expected_avg_time = :.2f}")

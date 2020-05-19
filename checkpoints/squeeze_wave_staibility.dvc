@@ -1,0 +1,7 @@
+md5: 1f550d36b8c46006696c9fae55d0230f
+outs:
+- md5: 71ea6ff3aad3ff70efe0ef1a9e031be9
+  path: squeeze_wave_staibility/epoch=32-val_loss=-5.12.ckpt
+  cache: true
+  metric: false
+  persist: false

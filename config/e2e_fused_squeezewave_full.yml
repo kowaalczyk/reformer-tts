@@ -1,0 +1,126 @@
+audio_directory: !path 'data/lj-speech-tacotron2/audio'
+data_directory: !path 'data/lj-speech-tacotron2'
+dataset:
+  audio_format:
+    max_duration_ms: 768000
+    min_duration_ms: 1000
+    mono: true
+    sampling_rate: 22050
+  dict_size: 76
+  mel_format:
+    hop_length: 256
+    n_fft: 1024
+    n_mels: 80
+    win_length: 1024
+  source_url: https://www.rev.com/blog/transcript-tag/donald-trump-speech-transcripts
+  split_percentages: !!python/tuple
+  - 0.75
+  - 0.25
+  - 0.0
+  trump_speaker_names: !!python/tuple
+  - Donald Trump
+  - President Trump
+  use_tacotron2_spectrograms: true
+experiment:
+  checkpoints_dir: checkpoints
+  experiment_name: default
+  max_epochs: 2
+  save_top_k_checkpoints: 0
+  tags: ''
+  train_workers: 4
+  tts_training:
+    batch_size: 8
+    early_stopping_epochs: null
+    learning_rate: 0.0001
+    num_visualizations: 3
+    positive_stop_weight: 5.0
+    weight_decay: 0.0001
+  val_workers: 4
+  vocoder_training:
+    audio_segment_length: 16384
+    batch_size: 96
+    learning_rate: 0.0004
+    loss_sigma: 1.0
+    num_visualizations: 10
+mel_directory: !path 'data/lj-speech-tacotron2/mel'
+merged_transcript_csv_path: !path 'data/lj-speech-tacotron2/transcript.csv'
+model:
+  dec_prenet_kwargs:
+    dropout: 0.5
+    hidden_size: 256
+  dec_reformer_kwargs:
+    attn_kwargs:
+      add_bias_kv: false
+      add_zero_attn: false
+      bias: true
+      dropout: 0.0
+      kdim: null
+      num_heads: 8
+      vdim: null
+    depth: 6
+    ff_chunks: 100
+    ff_kwargs:
+      dropout: 0.0
+      hidden: 2048
+    self_attn_kwargs:
+      add_local_attn_hash: false
+      allow_duplicate_attention: true
+      attend_across_buckets: true
+      attn_chunks: 1
+      bucket_size: 64
+      dropout: 0.0
+      full_attn_thres: null
+      heads: 8
+      n_hashes: 8
+      num_mem_kv: 0
+      one_value_head: false
+      post_attn_dropout: 0.0
+      random_rotations_per_head: false
+      return_attn: false
+      use_full_attn: false
+  dict_size: 76
+  embedding_dim: 512
+  enc_prenet_kwargs:
+    dropout: 0.5
+  enc_reformer_kwargs:
+    attn_kwargs:
+      add_local_attn_hash: false
+      allow_duplicate_attention: true
+      attend_across_buckets: true
+      attn_chunks: 1
+      bucket_size: 64
+      dropout: 0.0
+      full_attn_thres: null
+      heads: 8
+      n_hashes: 8
+      num_mem_kv: 0
+      one_value_head: false
+      post_attn_dropout: 0.0
+      random_rotations_per_head: false
+      return_attn: false
+      use_full_attn: false
+    depth: 6
+    ff_chunks: 100
+    ff_kwargs:
+      dropout: 0.0
+      hidden: 2048
+  num_mel_coeffs: 80
+  pad_base: 128
+  postnet_kwargs:
+    dropout: 0.0
+nltk_data_directory: !path '.nltk'
+preprocessed_data_directory: !path 'data/preprocessed'
+raw_data_directory: !path 'data/raw'
+squeeze_wave:
+  early_return_interval: 2
+  early_return_size: 16
+  n_audio_channels: 128
+  n_flows: 12
+  n_mel_channels: 80
+  wn_config:
+    conv_kernel_size: 3
+    mel_upsample_scale: 2
+    n_channels: 256
+    n_layers: 8
+transcript_directory: !path 'data/raw/transcripts'
+video_directory: !path 'data/raw/videos'

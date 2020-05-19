@@ -1,18 +1,18 @@
 from dataclasses import asdict
 from tempfile import NamedTemporaryFile
 
+import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 import torch
 import torchaudio
-import torchvision
-import pytorch_lightning as pl
-from torch.utils.data import DataLoader, random_split
-from torch.optim import Adam
 from torch.nn.functional import binary_cross_entropy_with_logits, mse_loss
+from torch.optim import Adam
+from torch.utils.data import DataLoader, random_split
 
 from reformer_tts.config import Config, as_shallow_dict
 from reformer_tts.dataset.interface import TextToSpectrogramDataset, SpectrogramToSpeechDataset
 from reformer_tts.dataset.utils import custom_sequence_padder, get_subset_lengths
+from reformer_tts.dataset.visualize import plot_spectrogram
 from reformer_tts.model.reformer_tts import ReformerTTS
 from reformer_tts.squeeze_wave.loss import SqueezeWaveLoss
 from reformer_tts.squeeze_wave.modules import SqueezeWave
@@ -85,7 +85,8 @@ class LitReformerTTS(pl.LightningModule):
         samples = self.prepare_samples()
         for sample in samples:
             with NamedTemporaryFile(suffix=".png") as f:
-                torchvision.utils.save_image(sample.transpose(1, 0), f.name)
+                plot_spectrogram(sample.transpose(1, 0).unsqueeze(0), scale=False)
+                plt.savefig(f.name)
                 self.logger.log_image("sample-image", f.name)
                 self.sample_idx += 1
         return {'val_loss': val_loss, 'log': logs}
@@ -122,6 +123,21 @@ class LitReformerTTS(pl.LightningModule):
             self.config.experiment.tts_training.learning_rate,
         )
 
+    def get_phoneme_encoder(self):
+        if not hasattr(self, "train_set"):
+            self.prepare_data()
+
+        assert isinstance(self.train_set.dataset, TextToSpectrogramDataset)
+
+        def encoder(phonemes: str) -> torch.Tensor:
+            encoding = torch.LongTensor([
+                self.train_set.dataset.phoneme_to_idx[phoneme]
+                for phoneme in phonemes.split()]
+            )
+            return encoding
+
+        return encoder
+
 
 class LitSqueezeWave(pl.LightningModule):
     def __init__(self, config: Config, on_gpu: bool):
@@ -130,9 +146,9 @@ class LitSqueezeWave(pl.LightningModule):
         self.model = SqueezeWave(**as_shallow_dict(self.config.squeeze_wave))
         self.loss = SqueezeWaveLoss(self.config.experiment.vocoder_training.loss_sigma)
         self.train_batch_size = self.config.experiment.vocoder_training.batch_size
-        self.train_num_workers = self.config.experiment.vocoder_training.train_workers
+        self.train_num_workers = self.config.experiment.train_workers
         self.val_batch_size = self.config.experiment.vocoder_training.batch_size
-        self.val_num_workers = self.config.experiment.vocoder_training.val_workers
+        self.val_num_workers = self.config.experiment.val_workers
         self.sample_idx = 0
         self.on_gpu = on_gpu
 
@@ -165,24 +181,31 @@ class LitSqueezeWave(pl.LightningModule):
 
     def validation_epoch_end(self, outputs):
         logs = {'val_loss': sum([o['loss'] for o in outputs]) / len(outputs)}
-        samples = self.prepare_samples()
-        for sample in samples:
-            sample = sample.to("cpu").unsqueeze(0)
+
+        # generate samples of audio on full spectrograms (not clipped to 1s)
+        for audio_sample in self.prepare_samples():
+            audio_sample = audio_sample.to("cpu")
             with NamedTemporaryFile(suffix=".wav") as f:
-                torchaudio.save(f.name, sample, self.config.dataset.audio_format.sampling_rate)
+                torchaudio.save(f.name, audio_sample, self.config.dataset.audio_format.sampling_rate)
                 self.logger.log_artifact(f.name, f"sample_audio/sample-{self.sample_idx}.wav")
             self.sample_idx += 1
+
         return {'log': logs}
 
     def prepare_samples(self):
-        batch_spec = torch.stack([
-            self.val_set[i]['spectrogram']
-            for i in range(self.config.experiment.vocoder_training.num_visualizations)
-        ])
-        if self.on_gpu:
-            batch_spec = batch_spec.cuda()
-        audio = self.model.infer(batch_spec)
-        return audio
+        validation_model = SqueezeWave(**as_shallow_dict(self.config.squeeze_wave))
+        validation_model.load_state_dict(self.model.state_dict())
+        validation_model = SqueezeWave.remove_norms(validation_model)
+        validation_model.eval()
+
+        for i in range(self.config.vocoder_training.num_visualizations):
+            # hack to use spectrogram from raw_sample on torch Subset (result of random_split)
+            _, mel = self.val_set.dataset.raw_sample(self.val_set.indices[i])
+            mel = mel.unsqueeze(0)
+            if self.on_gpu:
+                mel = mel.cuda()
+            audio = validation_model.infer(mel)
+            yield audio
 
     @pl.data_loader
     def train_dataloader(self) -> DataLoader:

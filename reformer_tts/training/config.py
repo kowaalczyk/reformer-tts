@@ -1,5 +1,5 @@
-from typing import Union
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -8,7 +8,7 @@ class TTSTrainingConfig:
     learning_rate: float = 1e-4
     positive_stop_weight: float = 5.
     num_visualizations: int = 3
-    early_stopping_epochs: int = None
+    early_stopping_epochs: Optional[int] = None
     weight_decay: int = 1e-4
 
 
@@ -30,5 +30,8 @@ class ExperimentConfig:
     max_epochs: int = 2
     train_workers: int = 4
     val_workers: int = 4
+    early_stopping_epochs: Optional[int] = None  # None to disable early stopping
+    n_saved_models: int = 50  # set between 10 and 100 depending on training length
     tags: str = ""
     save_top_k_checkpoints: int = 0  # set to zero to save all checkpoints
+    # todo: need to refactor before final training (same keys in multiple places) !!!

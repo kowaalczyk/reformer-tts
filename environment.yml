@@ -35,4 +35,5 @@ dependencies:
     - psutil==5.7.0
     - pandas==1.0.3
     - pytorch-lightning==0.7.3
+    - pytest==5.4.2
     - -e .

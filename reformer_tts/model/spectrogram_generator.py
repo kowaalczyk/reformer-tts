@@ -17,5 +17,7 @@ class SpectrogramGenerator:
             generated, stop_pred = self.model(text, spectrogram)
             spectrogram = torch.cat([spectrogram, generated[:, -1, :].view(1, 1, self.model.num_mel_coeffs)], dim=1)
             stop = torch.sigmoid(stop_pred[0, -1, 0]) > 0.5
+            print(spectrogram.shape, generated[:, -1, :].mean(), stop_pred.max())
 
-        return spectrogram[1, 1:, :]
+        spectrogram: torch.Tensor = spectrogram.transpose(1, 2)
+        return spectrogram[:, :, 1:]

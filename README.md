@@ -78,6 +78,18 @@ dvc pull
 ```
 
 
+### 3. Check if the setup is correct
+
+To do this you can run project tests:
+```shell script
+python -m pytest --pyargs reformer_tts
+```
+
+All tests should work on CPU and GPU, and may take up to a minute to complete.
+
+**Remember to pass `--pyargs reformer_tts` to pytest, otherwise it will search data directories for tests**
+
+
 ### Setup details
 
 - Use whatever package manager you want

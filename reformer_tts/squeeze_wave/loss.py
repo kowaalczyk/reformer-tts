@@ -21,8 +21,11 @@ class SqueezeWaveLoss(torch.nn.Module):
         log_s_sum = 0.
         log_det_W_sum = 0.
         for i, log_s in enumerate(log_s_list):
-            log_s_sum += torch.sum(log_s)
-            log_det_W_sum += log_det_W_list[i]
+            log_s_sum += torch.sum(log_s).double()
+            log_det_W_sum += log_det_W_list[i].double()
 
+        z = z.double()
         loss = torch.sum(z * z) / (2 * self.sigma ** 2) - log_s_sum - log_det_W_sum
-        return loss / (z.size(0) * z.size(1) * z.size(2))
+        loss = loss / (z.size(0) * z.size(1) * z.size(2))
+
+        return loss.float()
