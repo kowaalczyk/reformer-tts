@@ -24,6 +24,6 @@ pydub==0.23.1
 neptune-client==0.4.109
 psutil==5.7.0
 pandas==1.0.3
-pytorch-lightning==0.7.3
 pytest==5.4.2
+google-cloud-storage==1.28.1
 -e .

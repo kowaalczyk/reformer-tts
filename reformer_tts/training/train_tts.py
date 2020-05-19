@@ -28,7 +28,7 @@ def train_tts(config: Config):
         params={
             **asdict(config),
             **asdict(config.dataset),
-            **asdict(config.squeeze_wave),
+            **asdict(config.model),
             **asdict(config.experiment.tts_training),
         },
         tags=["reformer-tts"] + config.experiment.tags.split()
