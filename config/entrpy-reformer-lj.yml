@@ -17,14 +17,14 @@ dataset:
     win_length: 1024
 
 experiment:
-  experiment_name: "entropy_tests"
-  max_epochs: 2
-  train_workers: 8
-  val_workers: 8
+  experiment_name: "entropy multigpu noise"
+  max_epochs: 80
+  train_workers: 16
+  val_workers: 16
   tags: "lf_speech_tacotron2 entropy"
   tts_training:
-    batch_size: 24
-    weight_decay: 0.0001
+    batch_size: 48
+    weight_decay: 0.0003
     gpus: 2
     noise_std: 0.002
   save_top_k_checkpoints: 5
