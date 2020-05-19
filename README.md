@@ -146,6 +146,9 @@ To run training:
 * copy and modify `jobs/train_entropy.sbatch` - fill node name and training command
 * run `sbatch your/job/script/location.sbatch`
 
+**Pro Tip** `watch -n 1 sbatch -u your_username` to watch if your job is already running
+**Pro Tip2** You can watch the updates to the log by running `tail -f file.log` or `less --follow-name +F file.log`
+
 #### Pull from dvc
 To pull from dvc use `jobs/entropy_dvc_pull.sbatch`.
 * copy this file
