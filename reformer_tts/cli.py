@@ -147,8 +147,10 @@ def predict_samples(
 
     if torch.cuda.is_available():
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
+        device = torch.device('cuda')
         on_gpu = True
     else:
+        device = torch.device('cpu')
         on_gpu = False
 
     reformer = LitReformerTTS.load_from_checkpoint(reformer_checkpoint, config=config)
@@ -176,8 +178,8 @@ def predict_samples(
         for test_sample_idx in trange(max_samples, desc="predicting"):
             sample = dataset[test_sample_idx]
 
-            phonemes_in = sample['phonemes'].unsqueeze(0)
-            spectrogram_in = sample['spectrogram'].unsqueeze(0)
+            phonemes_in = sample['phonemes'].unsqueeze(0).to(device=device)
+            spectrogram_in = sample['spectrogram'].unsqueeze(0).to(device=device)
 
             # todo: we shouldn't pass target spectrogram into reformer:
             spectrogram_out, stop_out = reformer(phonemes_in, spectrogram_in[:, :-1, :])
@@ -189,9 +191,9 @@ def predict_samples(
 
             audio_out = squeeze_wave.infer(spectrogram_out)
             results.append({
-                "spectrogram": spectrogram_out,
-                "spectrogram_mse": float(mse.numpy()),
-                "audio": audio_out,
+                "spectrogram": spectrogram_out.cpu(),
+                "spectrogram_mse": float(mse.cpu().numpy()),
+                "audio": audio_out.cpu(),
                 "idx": sample["idx"],
             })
         best_mse = min(results, key=lambda r: r["spectrogram_mse"])["spectrogram_mse"]
@@ -205,6 +207,7 @@ def predict_samples(
             spectrogram_path = output_dir / f"{filename}.png"
             plot_spectrogram(result["spectrogram"], scale=False)
             plt.savefig(str(spectrogram_path))
+            plt.close()
 
             audio_path = output_dir / f"{filename}.wav"
             torchaudio.save(
@@ -235,8 +238,10 @@ def predict_from_text(
     if torch.cuda.is_available():
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
         on_gpu = True
+        device = torch.device('cuda')
     else:
         on_gpu = False
+        device = torch.device('cpu')
 
     reformer = LitReformerTTS.load_from_checkpoint(reformer_checkpoint, config=config)
     reformer = reformer.eval()
@@ -258,15 +263,20 @@ def predict_from_text(
             phonemes = phonemizer.phonemize(line)
             print(f"Predicting from {phonemes=}...")
             phonemes = " ".join(phonemes)
-            phonemes = phoneme_encoder(phonemes).unsqueeze(0)
+            phonemes = phoneme_encoder(phonemes).unsqueeze(0).to(device=device)
 
             spectrogram = spectrogram_generator.generate(phonemes)
-
             audio_out = squeeze_wave.infer(spectrogram)
+
+            spectrogram_path = output_dir / f"pred-stdin-{idx}.png"
+            plot_spectrogram(spectrogram.cpu(), scale=False)
+            plt.savefig(str(spectrogram_path))
+            plt.close()
+
             audio_path = output_dir / f"pred-stdin-{idx}.wav"
             torchaudio.save(
                 str(audio_path),
-                audio_out,
+                audio_out.cpu(),
                 config.dataset.audio_format.sampling_rate
             )
             print(f"Output saved to {audio_path.resolve()}")
