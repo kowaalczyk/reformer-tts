@@ -17,14 +17,15 @@ dataset:
     win_length: 1024
 
 experiment:
-  experiment_name: "reformer-tts_ljtc2_masked-loss"
+  experiment_name: "reformer-tts_ljtc2_double-loss"
   max_epochs: 1000
   train_workers: 16
   val_workers: 16
-  tags: "lf_speech_tacotron2 more_regularization masked_loss"
+  tags: "lj_speech_tacotron2 more_regularization masked_loss double_loss inference_stats"
   tts_training:
     batch_size: 32
     weight_decay: 0.0001
+    num_visualizations: 10
   save_top_k_checkpoints: 5
 
 model:

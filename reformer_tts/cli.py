@@ -5,6 +5,7 @@ from pprint import pprint
 from typing import Optional
 
 import click
+import matplotlib.pyplot as plt
 import torch
 import torchaudio
 from click import Context
@@ -13,14 +14,12 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import NeptuneLogger
 from torch.nn.functional import mse_loss
 from tqdm import trange, tqdm
-import matplotlib.pyplot as plt
 
 from reformer_tts.config import Config
 from reformer_tts.dataset.convert import PhonemeSequenceCreator
 from reformer_tts.dataset.download import download_speech_videos_and_transcripts
 from reformer_tts.dataset.preprocess import preprocess_data
 from reformer_tts.dataset.visualize import plot_spectrogram
-from reformer_tts.model.spectrogram_generator import SpectrogramGenerator
 from reformer_tts.squeeze_wave.modules import SqueezeWave
 from reformer_tts.training.train_tts import train_tts as train_tts_function
 from reformer_tts.training.wrappers import LitSqueezeWave, LitReformerTTS
@@ -175,6 +174,7 @@ def predict_samples(
         max_samples = len(dataset)
 
     with torch.no_grad():
+        # todo: use ReformerTTS.infer
         for test_sample_idx in trange(max_samples, desc="predicting"):
             sample = dataset[test_sample_idx]
 
@@ -245,7 +245,7 @@ def predict_from_text(
 
     reformer = LitReformerTTS.load_from_checkpoint(reformer_checkpoint, config=config)
     reformer = reformer.eval()
-    spectrogram_generator = SpectrogramGenerator(reformer.model)
+
     squeeze_wave = LitSqueezeWave.load_from_checkpoint(
         squeeze_wave_checkpoint,
         config=config,
@@ -265,7 +265,9 @@ def predict_from_text(
             phonemes = " ".join(phonemes)
             phonemes = phoneme_encoder(phonemes).unsqueeze(0).to(device=device)
 
-            spectrogram = spectrogram_generator.generate(phonemes)
+            spectrogram = reformer.model.infer(
+                phonemes, combine_strategy="concat", verbose=True
+            )
             audio_out = squeeze_wave.infer(spectrogram)
 
             spectrogram_path = output_dir / f"pred-stdin-{idx}.png"
