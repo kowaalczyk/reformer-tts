@@ -8,8 +8,8 @@
 #SBATCH --signal=SIGUSR1@90  # to auto resubmit job
 
 
-#SBATCH --gres=gpu:2  # change this if you want to train on less nodes
-#SBATCH --ntasks-per-node=2  # change this if you want to train on less nodes
+#SBATCH --gres=gpu:titanx:1  # change this if you want to train on less gpus
+#SBATCH --ntasks-per-node=1  # change this if you want to train on less gpus
 
 #SBATCH --error=/results/reformer-tts/reformerNoise.err
 #SBATCH --output=/results/reformer-tts/reformerNoise.out  # HERE you may want to change this
