@@ -11,9 +11,9 @@
 #SBATCH --gres=gpu:2  # change this if you want to train on less nodes
 #SBATCH --ntasks-per-node=2  # change this if you want to train on less nodes
 
-#SBATCH --error=/results/reformer-tts/asusgpu3.err
-#SBATCH --output=/results/reformer-tts/asusgpu3.out  # HERE you may want to change this
-#SBATCH --nodelist=asusgpu3 # HERE change node name here
+#SBATCH --error=/results/reformer-tts/reformerNoise.err
+#SBATCH --output=/results/reformer-tts/reformerNoise.out  # HERE you may want to change this
+#SBATCH --nodelist=asusgpu4 # HERE change node name here
 
 cd /scidatalg/reformer-tts/reformer-tts
 __conda_setup="$('/scidatalg/reformer-tts/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
