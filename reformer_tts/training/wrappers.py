@@ -56,6 +56,11 @@ class LitReformerTTS(pl.LightningModule):
         }
         return {'loss': loss, 'log': logs}
 
+    # def training_step_end(self, batch_parts_outputs):
+    #     "This function aggregates parts of batch when trained whith dp of ddp2"
+    #     print(type(batch_parts_outputs))
+    #     return batch_parts_outputs
+
     def validation_step(self, batch, batch_idx):
         loss, pred_loss, stop_loss = self.calculate_loss(batch)
         return {
@@ -63,6 +68,11 @@ class LitReformerTTS(pl.LightningModule):
             'pred_loss': pred_loss,
             'loss': loss,
         }
+
+    # def validation_step_end(self, batch_parts_outputs):
+    #     "This function aggregates parts of batch when trained whith dp of ddp2"
+    #     print(type(batch_parts_outputs))
+    #     return batch_parts_outputs
 
     def calculate_loss(self, batch):
         input_spec = batch['spectrogram']

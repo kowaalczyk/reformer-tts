@@ -2,6 +2,7 @@ import os
 
 from dataclasses import asdict
 
+import numpy as np
 import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
@@ -12,6 +13,11 @@ from reformer_tts.config import Config
 
 
 def train_tts(config: Config):
+
+    torch.manual_seed(42)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    np.random.seed(42)
 
     if torch.cuda.is_available():
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
@@ -58,7 +64,7 @@ def train_tts(config: Config):
         early_stop_callback = False
 
     trainer = Trainer(
-        gpus=gpus,
+        gpus=list(range(gpus)),
         max_epochs=max_epochs,
         logger=neptune_logger,
         checkpoint_callback=checkpoint_callback,
