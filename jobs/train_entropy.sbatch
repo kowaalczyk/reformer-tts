@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-#SBATCH --job-name=asusgpu3_test
+#SBATCH --job-name=reformerNoise
 #SBATCH --qos=gsn
 #SBATCH --partition=common
 #SBATCH --export=ALL,PATH="/scidatalg/reformer-tts/miniconda3/bin:${PATH}"
@@ -11,7 +11,8 @@
 #SBATCH --gres=gpu:2  # change this if you want to train on less nodes
 #SBATCH --ntasks-per-node=2  # change this if you want to train on less nodes
 
-#SBATCH --output=/results/reformer-tts/asusgpu3.out.txt  # HERE you may want to change this
+#SBATCH --error=/results/reformer-tts/asusgpu3.err
+#SBATCH --output=/results/reformer-tts/asusgpu3.out  # HERE you may want to change this
 #SBATCH --nodelist=asusgpu3 # HERE change node name here
 
 cd /scidatalg/reformer-tts/reformer-tts

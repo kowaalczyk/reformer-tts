@@ -21,7 +21,7 @@ def train_tts(config: Config):
         on_gpu = False
         gpus = 0
 
-    distributed_backend = 'dp' if gpus > 1 else None
+    distributed_backend = 'ddp' if gpus > 1 else None
 
     max_epochs = config.experiment.max_epochs
     neptune_logger = NeptuneLogger(
