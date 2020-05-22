@@ -55,3 +55,16 @@ def get_subset_lengths(length, split_percentages):
     val_l = int(length * split_percentages[1]) if split_percentages[1] != 0 else 0
     train_l = length - test_l - val_l
     return train_l, val_l, test_l
+
+
+# this snippet is from https://discuss.pytorch.org/t/how-to-add-noise-to-mnist-dataset-when-using-pytorch/59745/2
+class AddGaussianNoise():
+    def __init__(self, mean=0., std=1.):
+        self.std = std
+        self.mean = mean
+
+    def __call__(self, tensor):
+        return tensor + torch.randn(tensor.size()) * self.std + self.mean
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std) 

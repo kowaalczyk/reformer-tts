@@ -1,0 +1,7 @@
+md5: 83d42c06925fe979c2a908f7cba12b5b
+outs:
+- md5: 45b327b74919cdfa5474809d3be537fe.dir
+  path: entropy-noise
+  cache: true
+  metric: false
+  persist: false

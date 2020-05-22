@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader, random_split
 
 from reformer_tts.config import Config, as_shallow_dict
 from reformer_tts.dataset.interface import TextToSpectrogramDataset, SpectrogramToSpeechDataset
-from reformer_tts.dataset.utils import custom_sequence_padder, get_subset_lengths
+from reformer_tts.dataset.utils import custom_sequence_padder, get_subset_lengths, AddGaussianNoise
 from reformer_tts.dataset.visualize import plot_spectrogram
 from reformer_tts.model.loss import TTSLoss
 from reformer_tts.model.reformer_tts import ReformerTTS
@@ -35,15 +35,20 @@ class LitReformerTTS(pl.LightningModule):
         self.val_num_workers = self.config.experiment.val_workers
         self.train_num_workers = self.config.experiment.train_workers
         self.on_gpu = on_gpu
+        noise_std = config.experiment.tts_training.noise_std 
+        self.transform = AddGaussianNoise(mean=0, std=noise_std) if noise_std is not None else None
 
     def forward(self, phonemes, spectrogram, stop_tokens, loss_mask):
+        spectrogram_input = spectrogram
+        if self.transform:
+            spectrogram_input[:, 1:, :] = self.transform(spectrogram_input[:, 1:, :]) 
         if self.on_gpu:
-            phonemes, spectrogram = phonemes.cuda(), spectrogram.cuda()
+            phonemes, spectrogram, spectrogram_input = phonemes.cuda(), spectrogram.cuda(), spectrogram_input.cuda()
             stop_tokens, loss_mask = stop_tokens.cuda(), loss_mask.cuda()
 
         raw_mel_out, post_mel_out, stop_out = self.model.forward(
             phonemes,
-            spectrogram[:, :-1, :]
+            spectrogram_input[:, :-1, :]
         )
         loss, raw_mel_loss, post_mel_loss, stop_loss = self.loss.forward(
             raw_mel_out,

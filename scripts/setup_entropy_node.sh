@@ -27,7 +27,7 @@ export GOOGLE_APPLICATION_CREDENTIALS="/scidatalg/reformer-tts/gcp-cred.json"
 
 git clone https://github.com/kowaalczyk/reformer-tts.git
 cd reformer-tts
-git checkout entropy-scripts
+git checkout master
 
 conda env create -f environment.yml
 conda activate reformer-tts

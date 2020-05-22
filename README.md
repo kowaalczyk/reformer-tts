@@ -143,8 +143,18 @@ Remote is set up on Google Cloud Storage, for details run `dvc config list`.
 Nodes prepared for running:
 * asusgpu3
 * asusgpu4
+* asusgpu1
+* arnold
+* sylvester
 
-#### Running training on specific node
+#### Running trainig on node with homedir
+* Clone repo to your homedir
+* Make sure dataset path is configured in `/scidatalg`
+* Setup command to call file from your homedir
+* Commit your changes
+* Run sbatch script
+
+#### Running training on specific node without homedir
 Before runing:
 * chose node from already prepared or prepare new one using instructions below
 * copy repository to your home dir
@@ -152,7 +162,7 @@ Before runing:
 
 To run training:
 * prepare training config and push it onto remote repository
-* login to chosen node using interactive session `srun --qos=gsn --partition=student --nodelist=<name_of_chosen_node> --pty /bin/bash`
+* login to chosen node using interactive session `srun --qos=gsn --partition=common --nodelist=<name_of_chosen_node> --pty /bin/bash`
 * goto `/scidatalg/reformer-tts/reformer-tts/` make sure repository is pulled and on proper branch
 * log back to login node
 * copy and modify `jobs/train_entropy.sbatch` - fill node name and training command
@@ -173,7 +183,7 @@ To pull from dvc use `jobs/entropy_dvc_pull.sbatch`.
 Since /scidatasm directory is not syncing while we want to train we have to setup training on each node separately by hand. To setup env on new node follow this instuctions:
 
 **Note**: only nodes with /scidatalg are supported by this scripts. These nodes are: asusgpu4, asusgpu3, asusgpu2, asusgpu1, arnold, sylvester
-* login to node using interactive session `srun --qos=gsn --partition=student --nodelist=<name_of_chosen_node> --pty /bin/bash`
+* login to node using interactive session `srun --qos=gsn --partition=common --nodelist=<name_of_chosen_node> --pty /bin/bash`
 * copy google api credentials to `${HOME}/gcp-cred.json` (using your favourite editor)
 * copy the content of `scripts/setup_entropy_node.sh` to new file in home dir (again using editor)
 * run copied script

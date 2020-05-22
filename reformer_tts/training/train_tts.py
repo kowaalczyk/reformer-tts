@@ -3,7 +3,7 @@ import os
 from dataclasses import asdict
 
 import torch
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.logging.neptune import NeptuneLogger
 
@@ -12,6 +12,8 @@ from reformer_tts.config import Config
 
 
 def train_tts(config: Config):
+
+    seed_everything(42)
 
     if torch.cuda.is_available():
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
