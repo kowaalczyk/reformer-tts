@@ -148,7 +148,8 @@ class LitReformerTTS(pl.LightningModule):
                 true_mel = true_mel.cuda()
             
             padded_mel_out = torch.zeros_like(true_mel)
-            padded_mel_out[:, :, :min(padded_mel_out.shape[-1], mel_out.shape[-1])] = mel_out
+            common_mel_len = min(padded_mel_out.shape[-1], mel_out.shape[-1])
+            padded_mel_out[:, :, :common_mel_len] = mel_out[:, :, :common_mel_len]
             inference_mse = mse_loss(padded_mel_out, true_mel)
             outputs.append({
                 'inference_time': inference_time,
