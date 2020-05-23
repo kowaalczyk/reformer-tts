@@ -30,7 +30,7 @@ class LitReformerTTS(pl.LightningModule):
         self.train_batch_size = self.config.experiment.tts_training.batch_size
         self.val_num_workers = self.config.experiment.val_workers
         self.train_num_workers = self.config.experiment.train_workers
-        
+
         self.model = ReformerTTS(**asdict(self.config.model))
         self.loss = TTSLoss(
             torch.tensor(self.config.experiment.tts_training.positive_stop_weight)
@@ -39,14 +39,14 @@ class LitReformerTTS(pl.LightningModule):
             self.transform = AddGaussianNoise(mean=0, std=noise_std)
         else:
             self.transform = None
-        self.on_gpu = on_gpu        
-        
+        self.on_gpu = on_gpu
+
         assert self.config.experiment.tts_training.num_visualizations <= self.val_batch_size
 
     def forward(self, phonemes, spectrogram, stop_tokens, loss_mask):
         spectrogram_input = spectrogram
         if self.transform:
-            spectrogram_input[:, 1:, :] = self.transform(spectrogram_input[:, 1:, :]) 
+            spectrogram_input[:, 1:, :] = self.transform(spectrogram_input[:, 1:, :])
         if self.on_gpu:
             phonemes, spectrogram, spectrogram_input = phonemes.cuda(), spectrogram.cuda(), spectrogram_input.cuda()
             stop_tokens, loss_mask = stop_tokens.cuda(), loss_mask.cuda()
@@ -81,10 +81,10 @@ class LitReformerTTS(pl.LightningModule):
             batch["loss_mask"],
         )
         logs = {
-            'train_stop_loss': stop_loss,
-            'train_raw_pred_loss': raw_mel_loss,
-            'train_post_pred_loss': post_mel_loss,
-            'train_loss': loss,
+            'train_stop_loss': stop_loss.cpu(),
+            'train_raw_pred_loss': raw_mel_loss.cpu(),
+            'train_post_pred_loss': post_mel_loss.cpu(),
+            'train_loss': loss.cpu(),
         }
         return {'loss': loss, 'log': logs}
 
@@ -96,10 +96,10 @@ class LitReformerTTS(pl.LightningModule):
             batch["loss_mask"],
         )
         return {
-            'stop_loss': stop_loss,
-            'raw_pred_loss': raw_mel_loss,
-            'post_pred_loss': post_mel_loss,
-            'loss': loss,
+            'stop_loss': stop_loss.cpu(),
+            'raw_pred_loss': raw_mel_loss.cpu(),
+            'post_pred_loss': post_mel_loss.cpu(),
+            'loss': loss.cpu(),
         }
 
     def validation_epoch_end(self, outputs):
@@ -120,6 +120,7 @@ class LitReformerTTS(pl.LightningModule):
             **replace_inference_outputs,
         }
 
+        torch.cuda.empty_cache()
         return {'val_loss': val_loss, 'log': logs}
 
     def validate_inference(self, inference_combine_strategy: str) -> Dict[str, Any]:
@@ -146,10 +147,10 @@ class LitReformerTTS(pl.LightningModule):
         padded_mel_out *= true_mask
         inference_pred_mse = mse_loss(padded_mel_out, true_mel).cpu().item()
 
-        inference_stop_mae = torch.abs(stop_out - true_stop)\
+        inference_stop_mae = torch.abs(stop_out - true_stop) \
             .to(dtype=torch.float).mean().cpu().item()
 
-        for i in range(self.config.experiment.tts_training.num_visualizations):    
+        for i in range(self.config.experiment.tts_training.num_visualizations):
             with NamedTemporaryFile(suffix=".png") as f:
                 clipped_mel_pred = mel_out[i, :, :stop_out[i].item()].unsqueeze(0)
                 plot_spectrogram(clipped_mel_pred.cpu())
@@ -238,13 +239,13 @@ class LitSqueezeWave(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         output = self.forward((batch['spectrogram'], batch['audio']))
         loss = self.loss(output)
-        logs = {'loss': loss}
+        logs = {'loss': loss.cpu()}
         return {'loss': loss, 'log': logs}
 
     def validation_step(self, batch, batch_idx):
         output = self.forward((batch['spectrogram'], batch['audio']))
         loss = self.loss(output)
-        result = {'loss': loss}
+        result = {'loss': loss.cpu()}
         return result
 
     def validation_epoch_end(self, outputs):
