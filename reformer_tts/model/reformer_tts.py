@@ -102,7 +102,9 @@ class ReformerTTS(nn.Module):
         """
         :param phonemes: of shape (batch size, phonemes length)
         :param spectrogram: of shape (batch size, spectrogram length, num_mel_coeffs)
-        :return: tuple: (raw mel spectrogram, postnet mel spectrogram, stop vector)
+        :return: tuple: (raw mel spectrogram, postnet mel spectrogram, stop vector) where
+            raw mel spectrogram shape = postnet mel spectrogram shape = spectrogram shape,
+            stop vector shape = (batch size, spectrogram length, 1)
         """
         pad_phonemes = pad_to_multiple(
             phonemes.view((*phonemes.shape, 1)),
@@ -121,7 +123,7 @@ class ReformerTTS(nn.Module):
     def infer(
             self, phonemes: torch.LongTensor, combine_strategy: str = "concat",
             max_len: int = 1024, stop_threshold: float = 0.25, verbose: bool = False
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.LongTensor]:
         """
         Run inference loop to generate a new spectrogram
 
@@ -132,42 +134,56 @@ class ReformerTTS(nn.Module):
         :param stop_threshold: value in (-1 , 1) above which sigmoid(stop_pred)
             is consirered to indicate end of predicted sequence
         :param verbose: if true, prints progress info every 10 steps (useful for cpu)
-        :return: spectrogram: of shape (batch size, num_mel_coeffs, spectrogram length)
+        :return: tuple (spectrogram, stop_idx) where
+            spectrogram shape = (batch size, num_mel_coeffs, spectrogram length)
+            stop_idx shape = (batch size), contains end index for each spectrogram in batch
         """
         assert combine_strategy in {"concat", "replace"}
         assert -1. < stop_threshold < 1.
 
-        zeros = torch.zeros((1, 1, self.num_mel_coeffs))
+        batch_size = phonemes.shape[0]
+        zeros = torch.zeros((batch_size, 1, self.num_mel_coeffs))
         spectrogram = zeros.clone()
-        stop = False
+        stop = torch.zeros(batch_size, dtype=torch.long)
 
-        while not stop:
+        while not torch.all(stop > 0):
             _, generated, stop_pred = self.forward(phonemes, spectrogram)
+            stop_pred = stop_pred.view(-1, generated.shape[1])  # view as (batch, len)
 
             if combine_strategy == "concat":
-                generated_slice = generated[:, -1, :].view(1, 1, self.num_mel_coeffs)
+                generated_slice = generated[:, -1, :].view(batch_size, 1, self.num_mel_coeffs)
                 spectrogram = torch.cat([spectrogram, generated_slice], dim=1)
             elif combine_strategy == "replace":
                 spectrogram = torch.cat([zeros, generated], dim=1)
 
             iteration = spectrogram.shape[1]
             if verbose and iteration % 10 == 0:
-                print(f"reached {iteration=}...")
+                number_of_running_samples = len(torch.nonzero(stop))
+                print(f"reached {iteration=}, {number_of_running_samples=}...")
 
-            stop = torch.any(torch.sigmoid(stop_pred) > stop_threshold).item()
-            if stop:
-                stop_idx = torch.argmax(stop_pred) + 1
-                spectrogram = spectrogram[:, :stop_idx, :]
-                if verbose:
-                    print(f"stopped at {stop_idx=} on {iteration=}")
+            new_stop = torch.where(
+                stop == 0,
+                torch.any(torch.sigmoid(stop_pred) > stop_threshold, dim=1),
+                torch.zeros_like(stop, dtype=torch.bool)
+            )
+            if new_stop.any():
+                stop = torch.where(
+                    stop == 0,
+                    torch.argmax(stop_pred, dim=1) + 1,
+                    stop
+                )
+                if torch.all(stop > 0):
+                    break
 
             if max(spectrogram.shape) > max_len:
                 if verbose:
                     print(f"stopped at {max_len=}")
                 break
 
+        stop_at_end = torch.ones_like(stop, dtype=torch.long) * max_len
+        stop: torch.LongTensor = torch.where(stop == 0, stop_at_end, stop)
         spectrogram: torch.Tensor = spectrogram.transpose(1, 2)
-        return spectrogram[:, :, 1:]
+        return spectrogram[:, :, 1:], stop
 
 
 def pad_to_multiple(tensor, pad_base):

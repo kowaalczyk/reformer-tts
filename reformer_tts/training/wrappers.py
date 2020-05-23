@@ -26,17 +26,22 @@ class LitReformerTTS(pl.LightningModule):
     def __init__(self, config: Config, on_gpu=False):
         super().__init__()
         self.config = config
-        self.model = ReformerTTS(**asdict(self.config.model))
-        self.loss = TTSLoss(
-            torch.tensor(self.config.experiment.tts_training.positive_stop_weight)
-        )
         self.val_batch_size = self.config.experiment.tts_training.batch_size
         self.train_batch_size = self.config.experiment.tts_training.batch_size
         self.val_num_workers = self.config.experiment.val_workers
         self.train_num_workers = self.config.experiment.train_workers
-        self.on_gpu = on_gpu
-        noise_std = config.experiment.tts_training.noise_std 
-        self.transform = AddGaussianNoise(mean=0, std=noise_std) if noise_std is not None else None
+        
+        self.model = ReformerTTS(**asdict(self.config.model))
+        self.loss = TTSLoss(
+            torch.tensor(self.config.experiment.tts_training.positive_stop_weight)
+        )
+        if noise_std := config.experiment.tts_training.noise_std is not None:
+            self.transform = AddGaussianNoise(mean=0, std=noise_std)
+        else:
+            self.transform = None
+        self.on_gpu = on_gpu        
+        
+        assert self.config.experiment.tts_training.num_visualizations <= self.val_batch_size
 
     def forward(self, phonemes, spectrogram, stop_tokens, loss_mask):
         spectrogram_input = spectrogram
@@ -98,28 +103,9 @@ class LitReformerTTS(pl.LightningModule):
         }
 
     def validation_epoch_end(self, outputs):
-        def mean(x: List[torch.Tensor]) -> float:
+        def mean(x: List[torch.Tensor]) -> torch.Tensor:
             mean_value = sum(x) / len(x)
-            if hasattr(mean_value, "item"):
-                mean_value = mean_value.item()
             return mean_value
-
-        def aggregate(outs: List[Dict[str, Any]], prefix: str) -> Dict[str, Any]:
-            """ Take min, max and mean for every key over entire list. """
-            # assuming all dicts have same keys as the first one
-            means = {
-                f"{prefix}_mean_{k}": mean([o[k] for o in outs])
-                for k in outs[0]
-            }
-            mins = {
-                f"{prefix}_min_{k}": min([o[k] for o in outs])
-                for k in outs[0]
-            }
-            maxes = {
-                f"{prefix}_max_{k}": max([o[k] for o in outs])
-                for k in outs[0]
-            }
-            return {**means, **mins, **maxes}
 
         concat_inference_outputs = self.validate_inference("concat")
         replace_inference_outputs = self.validate_inference("replace")
@@ -130,44 +116,53 @@ class LitReformerTTS(pl.LightningModule):
             'val_raw_pred_loss': mean([o['raw_pred_loss'] for o in outputs]),
             'val_post_pred_loss': mean([o['post_pred_loss'] for o in outputs]),
             'val_loss': val_loss,
-            **aggregate(concat_inference_outputs, prefix="concat"),
-            **aggregate(replace_inference_outputs, prefix="replace"),
+            **concat_inference_outputs,
+            **replace_inference_outputs,
         }
 
         return {'val_loss': val_loss, 'log': logs}
 
-    def validate_inference(self, inference_combine_strategy: str):
-        outputs = list()
-        for i in range(self.config.experiment.tts_training.num_visualizations):
-            sample = self.val_set[i]
-            phonemes = sample['phonemes'].unsqueeze(0)
-            if self.on_gpu:
-                phonemes = phonemes.cuda()
+    def validate_inference(self, inference_combine_strategy: str) -> Dict[str, Any]:
+        batch = custom_sequence_padder([
+            self.val_set[i] for i in range(self.val_batch_size)
+        ])
+        phonemes = batch['phonemes']
+        true_mel = batch['spectrogram'][:, 1:, :].transpose(1, 2)
+        true_mask = batch["loss_mask"].transpose(1, 2)
+        true_stop = batch["stop_tokens"].argmax(dim=1)
+        if self.on_gpu:
+            phonemes = phonemes.cuda()
+            true_mel = true_mel.cuda()
+            true_mask = true_mask.cuda()
+            true_stop = true_stop.cuda()
 
-            start = time.time()
-            mel_out = self.model.infer(phonemes, combine_strategy=inference_combine_strategy)
-            inference_time = time.time() - start
+        start = time.time()
+        mel_out, stop_out = self.model.infer(phonemes, combine_strategy=inference_combine_strategy)
+        inference_time = time.time() - start
 
-            true_mel = sample['spectrogram'].unsqueeze(0)[:, 1:, :].transpose(1, 2)
-            if self.on_gpu:
-                true_mel = true_mel.cuda()
-            
-            padded_mel_out = torch.zeros_like(true_mel)
-            common_mel_len = min(padded_mel_out.shape[-1], mel_out.shape[-1])
-            padded_mel_out[:, :, :common_mel_len] = mel_out[:, :, :common_mel_len]
-            inference_mse = mse_loss(padded_mel_out, true_mel)
-            outputs.append({
-                'inference_time': inference_time,
-                'inference_mse': inference_mse.cpu().item(),
-                'true_minus_pred_len': max(true_mel.shape) - max(mel_out.shape)
-            })
+        padded_mel_out = torch.zeros_like(true_mel)
+        common_mel_len = min(padded_mel_out.shape[-1], mel_out.shape[-1])
+        padded_mel_out[:, :, :common_mel_len] = mel_out[:, :, :common_mel_len]
+        padded_mel_out *= true_mask
+        inference_pred_mse = mse_loss(padded_mel_out, true_mel).cpu().item()
 
+        inference_stop_mae = torch.abs(stop_out - true_stop)\
+            .to(dtype=torch.float).mean().cpu().item()
+
+        for i in range(self.config.experiment.tts_training.num_visualizations):    
             with NamedTemporaryFile(suffix=".png") as f:
-                plot_spectrogram(mel_out.cpu())
+                clipped_mel_pred = mel_out[i, :, :stop_out[i].item()].unsqueeze(0)
+                plot_spectrogram(clipped_mel_pred.cpu())
                 plt.savefig(f.name)
                 self.logger.log_image(f"sample-image-{inference_combine_strategy}", f.name)
+                plt.close()
 
-        return outputs
+        output = {
+            f"{inference_combine_strategy}_inference_time": inference_time,
+            f"{inference_combine_strategy}_inference_pred_mse": inference_pred_mse,
+            f"{inference_combine_strategy}_inference_stop_mae": inference_stop_mae
+        }
+        return output
 
     @pl.data_loader
     def train_dataloader(self) -> DataLoader:

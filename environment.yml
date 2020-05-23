@@ -17,7 +17,7 @@ dependencies:
     - boto3==1.12
     - dvc==0.88
     - Click==7
-    - pytorch-lightning==0.7.5
+    - pytorch-lightning==0.7.6
     - PyYAML==5.1.2
     - tqdm==4.43.0
     - beautifulsoup4==4.8.2

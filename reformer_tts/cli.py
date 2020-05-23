@@ -34,10 +34,13 @@ def cli(ctx: Context, config):
 
 
 @cli.command()
+@click.option("-r", "--resume", type=str, default=None, help="Path to checkpoint to resume")
 @click.pass_context
-def train_tts(ctx: Context):
+def train_tts(ctx: Context, resume: Optional[str]):
     config = ctx.obj["CONFIG"]
-    train_tts_function(config)
+    if resume is not None:
+        resume = Path(resume)
+    train_tts_function(config, resume)
 
 
 @cli.command()

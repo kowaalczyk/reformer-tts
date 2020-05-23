@@ -1,6 +1,8 @@
 import os
 
 from dataclasses import asdict
+from pathlib import Path
+from typing import Optional
 
 import torch
 from pytorch_lightning import Trainer, seed_everything
@@ -11,7 +13,7 @@ from reformer_tts.training.wrappers import LitReformerTTS
 from reformer_tts.config import Config
 
 
-def train_tts(config: Config):
+def train_tts(config: Config, checkpoint_to_resume: Optional[Path]):
 
     seed_everything(42)
 
@@ -36,7 +38,14 @@ def train_tts(config: Config):
         tags=["reformer-tts"] + config.experiment.tags.split()
     )
 
-    model = LitReformerTTS(config, on_gpu=on_gpu)
+    if checkpoint_to_resume is None:
+        model = LitReformerTTS(config, on_gpu=on_gpu)
+    else:
+        model = LitReformerTTS.load_from_checkpoint(
+            str(checkpoint_to_resume),
+            config=config,
+            on_gpu=on_gpu
+        )
     experiment_dir = os.path.join(config.experiment.checkpoints_dir, config.experiment.experiment_name)
 
     checkpoint_callback = ModelCheckpoint(
