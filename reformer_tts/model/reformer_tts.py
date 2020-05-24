@@ -147,33 +147,38 @@ class ReformerTTS(nn.Module):
         stop = torch.zeros(batch_size, dtype=torch.long)
 
         while not torch.all(stop > 0):
+            iteration = spectrogram.shape[1]
+            still_running = stop == 0
+            if verbose and iteration % 10 == 0:
+                number_of_running_samples = sum(still_running)
+                print(f"reached {iteration=}, {number_of_running_samples=}...")
+
             _, generated, stop_pred = self.forward(phonemes, spectrogram)
             stop_pred = stop_pred.view(-1, generated.shape[1])  # view as (batch, len)
 
             if combine_strategy == "concat":
                 generated_slice = generated[:, -1, :].view(batch_size, 1, self.num_mel_coeffs)
                 spectrogram = torch.cat([spectrogram, generated_slice], dim=1)
+
+                stops_now = torch.sigmoid(stop_pred[:, -1]) > stop_threshold
+                still_running_stops_now = still_running * stops_now
+                stop = torch.where(
+                    still_running_stops_now,
+                    (stops_now.to(dtype=torch.long) * iteration) + 1,
+                    stop
+                )
             elif combine_strategy == "replace":
                 spectrogram = torch.cat([zeros, generated], dim=1)
 
-            iteration = spectrogram.shape[1]
-            if verbose and iteration % 10 == 0:
-                number_of_running_samples = len(torch.nonzero(stop))
-                print(f"reached {iteration=}, {number_of_running_samples=}...")
-
-            new_stop = torch.where(
-                stop == 0,
-                torch.any(torch.sigmoid(stop_pred) > stop_threshold, dim=1),
-                torch.zeros_like(stop, dtype=torch.bool)
-            )
-            if new_stop.any():
+                stops_now = torch.any(
+                    torch.sigmoid(stop_pred) > stop_threshold, dim=1
+                )
+                still_running_stops_now = stops_now * still_running
                 stop = torch.where(
-                    stop == 0,
+                    still_running_stops_now,
                     torch.argmax(stop_pred, dim=1) + 1,
                     stop
                 )
-                if torch.all(stop > 0):
-                    break
 
             if max(spectrogram.shape) > max_len:
                 if verbose:
