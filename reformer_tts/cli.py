@@ -268,9 +268,10 @@ def predict_from_text(
             phonemes = " ".join(phonemes)
             phonemes = phoneme_encoder(phonemes).unsqueeze(0).to(device=device)
 
-            spectrogram = reformer.model.infer(
+            spectrogram, stop = reformer.model.infer(
                 phonemes, combine_strategy="concat", verbose=True
             )
+            spectrogram = spectrogram[:, :, :stop.item()]
             audio_out = squeeze_wave.infer(spectrogram)
 
             spectrogram_path = output_dir / f"pred-stdin-{idx}.png"
