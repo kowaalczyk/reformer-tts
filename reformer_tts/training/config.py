@@ -11,7 +11,8 @@ class TTSTrainingConfig:
     early_stopping_epochs: Optional[int] = None
     weight_decay: int = 1e-4
     noise_std: Optional[float] = None
-
+    accumulate_grad_batches: int = 1
+    gradient_clip_val: float = 0.  # 0 means don't clip
 
 @dataclass
 class VocoderTrainingConfig:

@@ -32,7 +32,7 @@ from reformer_tts.training.wrappers import LitSqueezeWave, LitReformerTTS
 def cli(ctx: Context, config):
     ctx.ensure_object(dict)
     ctx.obj["CONFIG"] = Config.from_yaml_file(config)
-
+    
 
 @cli.command()
 @click.option("-r", "--resume", type=str, default=None, help="Path to checkpoint to resume")

@@ -63,7 +63,15 @@ class LitReformerTTS(pl.LightningModule):
             true_stop=stop_tokens,
             true_mask=loss_mask
         )
-        return loss, raw_mel_loss, post_mel_loss, stop_loss
+        # differentiator is needed, because argamax may not return first maximal value when multiple values are maximal
+        differentiator = torch.arange(stop_tokens.shape[1]) / 10000
+        differentiator = differentiator.cuda() if self.on_gpu else differentiator
+        differentiator = differentiator.repeat(stop_tokens.shape[0])
+        stop_idx = torch.argmax((stop_out.view(stop_out.shape[0], -1) > 0).double() - differentiator, dim=1)
+        stop_err = stop_idx - torch.argmax(stop_tokens, dim=1)
+        stop_mae = stop_err.abs().mean()
+
+        return loss, raw_mel_loss, post_mel_loss, stop_loss, stop_mae
 
     def prepare_data(self):
         dataset = TextToSpectrogramDataset(
@@ -74,7 +82,7 @@ class LitReformerTTS(pl.LightningModule):
         self.train_set, self.val_set, self.test_set = random_split(dataset, lengths)
 
     def training_step(self, batch, batch_idx):
-        loss, raw_mel_loss, post_mel_loss, stop_loss = self.forward(
+        loss, raw_mel_loss, post_mel_loss, stop_loss, _ = self.forward(
             batch['phonemes'],
             batch['spectrogram'],
             batch['stop_tokens'],
@@ -89,7 +97,7 @@ class LitReformerTTS(pl.LightningModule):
         return {'loss': loss, 'log': logs}
 
     def validation_step(self, batch, batch_idx):
-        loss, raw_mel_loss, post_mel_loss, stop_loss = self.forward(
+        loss, raw_mel_loss, post_mel_loss, stop_loss, stop_mae = self.forward(
             batch['phonemes'],
             batch['spectrogram'],
             batch['stop_tokens'],
@@ -100,6 +108,7 @@ class LitReformerTTS(pl.LightningModule):
             'raw_pred_loss': raw_mel_loss.cpu(),
             'post_pred_loss': post_mel_loss.cpu(),
             'loss': loss.cpu(),
+            'stop_mae': stop_mae.cpu(),
         }
 
     def validation_epoch_end(self, outputs):

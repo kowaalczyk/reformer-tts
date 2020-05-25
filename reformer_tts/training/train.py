@@ -41,7 +41,7 @@ def train_vocoder(config: Config, checkpoint_path: Optional[Path]):
             config=config,
             on_gpu=on_gpu,
         )
-    logger = setup_logger(config, additional_tags=["reformer-tts"])
+    logger = setup_logger(config, additional_tags=["squeezewave"])
     trainer = setup_trainer(config, gpus, logger)
     trainer.fit(model)
 
@@ -84,6 +84,8 @@ def setup_trainer(config: Config, gpus: int, logger: LightningLoggerBase) -> Tra
         early_stop_callback=early_stop_callback,
         log_save_interval=50,
         row_log_interval=5,
+        accumulate_grad_batches=config.experiment.tts_training.accumulate_grad_batches,
+        gradient_clip_val=config.experiment.tts_training.gradient_clip_val,
     )
 
 
