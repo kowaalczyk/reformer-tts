@@ -267,7 +267,7 @@ class LitSqueezeWave(pl.LightningModule):
         validation_model = SqueezeWave.remove_norms(validation_model)
         validation_model.eval()
 
-        for i in range(self.config.vocoder_training.num_visualizations):
+        for i in range(self.config.experiment.vocoder_training.num_visualizations):
             # hack to use spectrogram from raw_sample on torch Subset (result of random_split)
             _, mel = self.val_set.dataset.raw_sample(self.val_set.indices[i])
             mel = mel.unsqueeze(0)

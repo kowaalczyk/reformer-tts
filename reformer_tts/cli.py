@@ -21,7 +21,8 @@ from reformer_tts.dataset.download import download_speech_videos_and_transcripts
 from reformer_tts.dataset.preprocess import preprocess_data
 from reformer_tts.dataset.visualize import plot_spectrogram
 from reformer_tts.squeeze_wave.modules import SqueezeWave
-from reformer_tts.training.train_tts import train_tts as train_tts_function
+from reformer_tts.training.train import train_tts as train_tts_function
+from reformer_tts.training.train import train_vocoder as train_vocoder_function
 from reformer_tts.training.wrappers import LitSqueezeWave, LitReformerTTS
 
 
@@ -41,6 +42,16 @@ def train_tts(ctx: Context, resume: Optional[str]):
     if resume is not None:
         resume = Path(resume)
     train_tts_function(config, resume)
+
+
+@cli.command()
+@click.option("-r", "--resume", type=str, default=None, help="Path to checkpoint to resume")
+@click.pass_context
+def train_vocoder(ctx: Context, resume: str):
+    config = ctx.obj["CONFIG"]
+    if resume is not None:
+        resume = Path(resume)
+    train_vocoder_function(config, resume)
 
 
 @cli.command()
@@ -70,57 +81,6 @@ def preprocess(ctx: Context):
         mel_format=config.dataset.mel_format,
         use_tacotron2_spectrograms=config.dataset.use_tacotron2_spectrograms
     )
-
-
-@cli.command()
-@click.option("-e", "--experiment", "experiment_name", default="squeeze_wave_training")
-@click.pass_context
-def train_vocoder(ctx: Context, experiment_name: str):
-    config: Config = ctx.obj["CONFIG"]
-
-    if torch.cuda.is_available():
-        torch.set_default_tensor_type(torch.cuda.FloatTensor)
-        on_gpu = True
-        gpus = 1  # todo: config?
-    else:
-        on_gpu = False
-        gpus = 0
-
-    model = LitSqueezeWave(config, on_gpu=on_gpu)
-    logger = NeptuneLogger(
-        project_name="reformer-tts/reformer-tts",
-        experiment_name=experiment_name,
-        params={
-            **asdict(config),
-            **asdict(config.dataset),
-            **asdict(config.squeeze_wave),
-            **asdict(config.experiment.vocoder_training),
-        }
-    )
-    checkpoint_callback = ModelCheckpoint(
-        filepath="checkpoints/{epoch}-{val_loss:.2f}",
-        monitor="val_loss",
-        save_top_k=config.experiment.n_saved_models,
-        verbose=True,
-    )
-    if config.experiment.early_stopping_epochs is not None:
-        early_stop_callback = EarlyStopping(
-            monitor='val_loss',
-            patience=config.experiment.early_stopping_epochs,
-            verbose=True,
-        )
-    else:
-        early_stop_callback = False
-
-    trainer = Trainer(
-        gpus=gpus,
-        logger=logger,
-        log_save_interval=50,
-        row_log_interval=5,
-        checkpoint_callback=checkpoint_callback,
-        early_stop_callback=early_stop_callback,
-    )
-    trainer.fit(model)
 
 
 @cli.command()
