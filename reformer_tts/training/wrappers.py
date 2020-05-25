@@ -66,10 +66,10 @@ class LitReformerTTS(pl.LightningModule):
         # differentiator is needed, because argamax may not return first maximal value when multiple values are maximal
         differentiator = torch.arange(stop_tokens.shape[1]) / 10000
         differentiator = differentiator.cuda() if self.on_gpu else differentiator
-        differentiator = differentiator.repeat(stop_tokens.shape[0])
-        stop_idx = torch.argmax((stop_out.view(stop_out.shape[0], -1) > 0).double() - differentiator, dim=1)
+        differentiator = differentiator.unsqueeze(0).repeat(stop_tokens.shape[0], 1)
+        stop_idx = torch.argmax((stop_out.view(stop_out.shape[0], -1) > 0).float() - differentiator, dim=1)
         stop_err = stop_idx - torch.argmax(stop_tokens, dim=1)
-        stop_mae = stop_err.abs().mean()
+        stop_mae = stop_err.abs().float().mean()
 
         return loss, raw_mel_loss, post_mel_loss, stop_loss, stop_mae
 
