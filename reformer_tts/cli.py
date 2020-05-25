@@ -185,12 +185,14 @@ def predict_samples(
 @click.option("-r", "--reformer-checkpoint", type=str, required=True, help="Path to reformer checkpoint")
 @click.option("-s", "--squeeze-wave-checkpoint", type=str, required=True, help="Path to squeezewave checkpoint")
 @click.option("-o", "--output-dir", type=str, required=True, help="Path where outputs will be saved")
+@click.option("-S", "--strategy", type=str, default="concat", help="Strategy for TTS inference ('concat' or 'replace')")
 @click.pass_context
 def predict_from_text(
         ctx: Context,
         reformer_checkpoint: str,
         squeeze_wave_checkpoint: str,
         output_dir: str,
+        strategy: str,
 ):
     config: Config = ctx.obj["CONFIG"]
 
@@ -229,7 +231,7 @@ def predict_from_text(
             phonemes = phoneme_encoder(phonemes).unsqueeze(0).to(device=device)
 
             spectrogram, stop = reformer.model.infer(
-                phonemes, combine_strategy="concat", verbose=True
+                phonemes, combine_strategy=strategy, verbose=True
             )
             spectrogram = spectrogram[:, :, :stop.item()]
             audio_out = squeeze_wave.infer(spectrogram)
@@ -239,7 +241,7 @@ def predict_from_text(
             plt.savefig(str(spectrogram_path))
             plt.close()
 
-            audio_path = output_dir / f"pred-stdin-{idx}.wav"
+            audio_path = output_dir / f"pred-{strategy}-stdin-{idx}.wav"
             torchaudio.save(
                 str(audio_path),
                 audio_out.cpu(),
