@@ -108,7 +108,6 @@ class LitReformerTTS(pl.LightningModule):
             return mean_value
 
         concat_inference_outputs = self.validate_inference("concat")
-        replace_inference_outputs = self.validate_inference("replace")
 
         val_loss = mean([o['loss'] for o in outputs])
         logs = {
@@ -117,7 +116,6 @@ class LitReformerTTS(pl.LightningModule):
             'val_post_pred_loss': mean([o['post_pred_loss'] for o in outputs]),
             'val_loss': val_loss,
             **concat_inference_outputs,
-            **replace_inference_outputs,
         }
 
         torch.cuda.empty_cache()
