@@ -10,10 +10,24 @@
 #SBATCH --qos=2gpu3d
 #SBATCH --partition=common
 #SBATCH --gres=gpu:1
+#SBATCH --export=ALL
 
 # debugging flags (optional) - suggested in pytorch lightining docs
 export NCCL_DEBUG=INFO
 export PYTHONFAULTHANDLER=1
+
+__conda_setup="$('/home/mo382777/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/home/mo382777/miniconda3/etc/profile.d/conda.sh" ]; then
+        . "/home/mo382777/miniconda3/etc/profile.d/conda.sh"
+    else
+        export PATH="/home/mo382777/miniconda3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+
 
 cd /home/mo382777/reformer-tts || exit 1
 conda activate reformer-tts
