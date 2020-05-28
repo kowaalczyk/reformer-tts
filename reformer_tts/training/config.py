@@ -1,5 +1,13 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Tuple
+
+
+@dataclass
+class LRSchedulerConfig:
+    initial_lr: float = 1e-4
+    final_lr: float = 1e-4
+    start_schedule_epoch: int = 0
+    end_schedule_epoch: Optional[int] = None
 
 
 @dataclass
@@ -13,6 +21,7 @@ class TTSTrainingConfig:
     noise_std: Optional[float] = None
     accumulate_grad_batches: int = 1
     gradient_clip_val: float = 0.  # 0 means don't clip
+    lr_scheduler: Optional[LRSchedulerConfig] = None
 
 @dataclass
 class VocoderTrainingConfig:

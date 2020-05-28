@@ -3,12 +3,14 @@ from dataclasses import asdict
 from tempfile import NamedTemporaryFile
 from typing import List, Dict, Any
 
+import numpy as np
 import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 import torch
 import torchaudio
 from torch.nn.functional import mse_loss
 from torch.optim import Adam
+from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader, random_split
 
 from reformer_tts.config import Config, as_shallow_dict
@@ -42,6 +44,7 @@ class LitReformerTTS(pl.LightningModule):
         self.on_gpu = on_gpu
 
         assert self.config.experiment.tts_training.num_visualizations <= self.val_batch_size
+
 
     def forward(self, phonemes, spectrogram, stop_tokens, loss_mask, use_transform: bool = True):
         spectrogram_input = spectrogram
@@ -102,7 +105,7 @@ class LitReformerTTS(pl.LightningModule):
             batch['spectrogram'],
             batch['stop_tokens'],
             batch["loss_mask"],
-            use_transform=False
+            use_transform=False,
         )
         return {
             'stop_loss': stop_loss.cpu(),
@@ -126,6 +129,7 @@ class LitReformerTTS(pl.LightningModule):
             'val_post_pred_loss': mean([o['post_pred_loss'] for o in outputs]),
             'val_stop_mae': mean([o['stop_mae'] for o in outputs]),
             'val_loss': val_loss,
+            'val_stop_mae': mean([o['stop_mae'] for o in outputs]),
             **concat_inference_outputs,
         }
 
@@ -195,10 +199,35 @@ class LitReformerTTS(pl.LightningModule):
         )
 
     def configure_optimizers(self):
-        return Adam(
-            self.model.parameters(),
-            self.config.experiment.tts_training.learning_rate,
-        )
+        if self.config.experiment.tts_training.lr_scheduler is not None:
+            schedule_config = self.config.experiment.tts_training.lr_scheduler
+            optimizer = Adam(
+                self.model.parameters(),
+                schedule_config.initial_lr,
+            )
+            start = schedule_config.start_schedule_epoch
+            end = schedule_config.end_schedule_epoch
+            end = self.config.experiment.max_epochs if end is None else end
+            gamma = np.log(schedule_config.initial_lr) - np.log(schedule_config.final_lr)
+            gamma /= end - start
+
+            def exp_lr(current):
+                if start <= current <= end:
+                    lr = np.exp(-1 * gamma * float(current)) * schedule_config.initial_lr
+                elif start > current:
+                    lr = schedule_config.initial_lr
+                else:
+                    lr = schedule_config.final_lr
+                self.logger.log_metric("learning_rate", lr)
+                return lr
+
+            scheduler = LambdaLR(optimizer, exp_lr)
+            return [optimizer], [scheduler]
+        else:
+            return Adam(
+                self.model.parameters(),
+                self.config.experiment.tts_training.learning_rate,
+            )
 
     def get_phoneme_encoder(self):
         # todo: there has to be a nicer way of extracting this !!!
