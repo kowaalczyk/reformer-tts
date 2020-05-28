@@ -21,11 +21,13 @@ experiment:
   max_epochs: 1000
   train_workers: 16
   val_workers: 16
-  tags: "lj_speech_tacotron2 more_regularization masked_loss double_loss inference_stats tacotron_dropout accumulate_batch"
+  tags: "lj_speech_tacotron2 more_regularization masked_loss double_loss inference_stats tacotron_dropout accumulate_batch clipping_1 half_lr noise bs_60"
   tts_training:
     batch_size: 20
     accumulate_grad_batches: 3
+    learning_rate: 0.00005
     gradient_clip_val: 1.
+    noise_std: 0.01
     num_visualizations: 10
   save_top_k_checkpoints: 3
   checkpoints_dir: /results/reformer-tts
