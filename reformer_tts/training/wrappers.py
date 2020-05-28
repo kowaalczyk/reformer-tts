@@ -43,9 +43,9 @@ class LitReformerTTS(pl.LightningModule):
 
         assert self.config.experiment.tts_training.num_visualizations <= self.val_batch_size
 
-    def forward(self, phonemes, spectrogram, stop_tokens, loss_mask):
+    def forward(self, phonemes, spectrogram, stop_tokens, loss_mask, use_transform: bool = True):
         spectrogram_input = spectrogram
-        if self.transform:
+        if use_transform and self.transform:
             spectrogram_input[:, 1:, :] = self.transform(spectrogram_input[:, 1:, :])
         if self.on_gpu:
             phonemes, spectrogram, spectrogram_input = phonemes.cuda(), spectrogram.cuda(), spectrogram_input.cuda()
@@ -102,6 +102,7 @@ class LitReformerTTS(pl.LightningModule):
             batch['spectrogram'],
             batch['stop_tokens'],
             batch["loss_mask"],
+            use_transform=False
         )
         return {
             'stop_loss': stop_loss.cpu(),
@@ -123,6 +124,7 @@ class LitReformerTTS(pl.LightningModule):
             'val_stop_loss': mean([o['stop_loss'] for o in outputs]),
             'val_raw_pred_loss': mean([o['raw_pred_loss'] for o in outputs]),
             'val_post_pred_loss': mean([o['post_pred_loss'] for o in outputs]),
+            'val_stop_mae': mean(o['stop_mae'] for o in outputs),
             'val_loss': val_loss,
             **concat_inference_outputs,
         }
