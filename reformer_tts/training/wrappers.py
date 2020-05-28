@@ -124,7 +124,7 @@ class LitReformerTTS(pl.LightningModule):
             'val_stop_loss': mean([o['stop_loss'] for o in outputs]),
             'val_raw_pred_loss': mean([o['raw_pred_loss'] for o in outputs]),
             'val_post_pred_loss': mean([o['post_pred_loss'] for o in outputs]),
-            'val_stop_mae': mean(o['stop_mae'] for o in outputs),
+            'val_stop_mae': mean([o['stop_mae'] for o in outputs]),
             'val_loss': val_loss,
             **concat_inference_outputs,
         }
