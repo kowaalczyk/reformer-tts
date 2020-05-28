@@ -1,0 +1,7 @@
+md5: e02b18c1d5d81ad5201e5263cebf45de
+outs:
+- md5: d03d2ea6de089e830b78621bb017de4d.dir
+  path: clipping1
+  cache: true
+  metric: false
+  persist: false
