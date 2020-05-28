@@ -95,7 +95,7 @@ class SpectrogramToSpeechDataset(Dataset):
                 'constant'
             )
 
-        sample = {"audio": audio, "spectrogram": spectrogram, "idx": idx}
+        sample = {"audio": audio, "spectrogram": spectrogram}
         return sample
 
     def raw_sample(self, idx: Union[torch.Tensor, np.array, int]) -> Tuple[torch.Tensor, torch.Tensor]:
