@@ -1,11 +1,11 @@
-md5: 3169f7183f3c1bbc8caa051de36aabac
+md5: 8f1c4ac5ad54714940833b6508a244fe
 cmd: python scripts/preprocess_lj_speech_dataset.py -c config/lj_speech_tacotron2.yml
   -i data/lj-speech/LJSpeech-1.1.tar.bz2
 wdir: ..
 deps:
 - md5: c4763be9595ddfa79c2fc6eaeb3b6c8e
   path: data/lj-speech/LJSpeech-1.1.tar.bz2
-- md5: 8a771fed30d5a0fba1c15fd05306c466
+- md5: 579b7191d6b4ebe6a61eda6c7e71cc85
   path: config/lj_speech_tacotron2.yml
 - md5: 7f7dd7c59d3e7b9d8844445fe140096b
   path: scripts/preprocess_lj_speech_dataset.py
