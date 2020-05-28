@@ -232,6 +232,7 @@ class LitSqueezeWave(pl.LightningModule):
         dataset = SpectrogramToSpeechDataset(
             self.config.merged_transcript_csv_path,
             self.config.mel_directory,
+            self.config.audio_directory,
             audio_segment_length=self.config.experiment.vocoder_training.audio_segment_length,
             mel_hop_length=self.config.dataset.mel_format.hop_length,
         )

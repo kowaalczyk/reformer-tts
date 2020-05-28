@@ -50,11 +50,13 @@ class SpectrogramToSpeechDataset(Dataset):
             self,
             merged_transcript_csv_path: Path,
             mel_directory: Path,
+            audio_directory: Path,
             audio_segment_length: int,
             mel_hop_length: int,
     ):
         self.transcripts_df = pd.read_csv(merged_transcript_csv_path)
         self.mel_directory = mel_directory
+        self.audio_directory = audio_directory
         self.audio_segment_length = audio_segment_length
         self.mel_hop_length = mel_hop_length
 
@@ -106,6 +108,7 @@ class SpectrogramToSpeechDataset(Dataset):
             idx = int(idx[0])
 
         audio_path = Path(self.transcripts_df.loc[idx, "audio_path"])
+        audio_path = self.audio_directory / audio_path.name
         audio, _ = torchaudio.load(audio_path)  # ignore sampling rate here
         audio = torch.squeeze(audio, dim=0)
 
