@@ -215,7 +215,7 @@ class LitReformerTTS(pl.LightningModule):
                 if start <= current <= end:
                     a = np.exp(-1 * gamma * float(current)) * schedule_config.initial_lr
                     b = np.exp(-1 * gamma * float(current-1)) * schedule_config.initial_lr
-                    decay = b / a
+                    decay = a / b
                 else:
                     decay = 1
                 self.logger.log_metric("learning_rate_decay", decay)

@@ -1,0 +1,46 @@
+data_directory: 'data/lj-speech-tacotron2'
+merged_transcript_csv_path: 'data/lj-speech-tacotron2/transcript.csv'
+audio_directory: 'data/lj-speech-tacotron2/audio'
+mel_directory: 'data/lj-speech-tacotron2/mel'
+dataset:
+  use_tacotron2_spectrograms: true
+  dict_size: 76
+  audio_format:
+    max_duration_ms: 768000
+    min_duration_ms: 1000
+    mono: true
+    sampling_rate: 22050
+  mel_format:
+    hop_length: 256
+    n_fft: 1024
+    n_mels: 80
+    win_length: 1024
+
+experiment:
+  experiment_name: "less-decay-lr-scheduling"
+  max_epochs: 1000
+  train_workers: 16
+  val_workers: 16
+  tags: "lj_speech_tacotron2 masked_loss double_loss inference_stats accumulate_batch lr_scheduling bs_60"
+  tts_training:
+    batch_size: 30
+    accumulate_grad_batches: 2
+    lr_scheduler:
+      initial_lr: 0.001
+      final_lr: 0.00001
+      start_schedule_epoch: 1
+      end_schedule_epoch: 42
+    weight_decay: 0.00001
+    num_visualizations: 10
+  save_top_k_checkpoints: 10
+
+model:
+  dict_size: 76
+  num_mel_coeffs: 80
+  scp_encoding_dropout: 0.05
+  postnet_kwargs:
+    dropout: 0.5
+  enc_prenet_kwargs:
+    dropout: 0.1
+  dec_prenet_kwargs:
+    dropout: 0.1
