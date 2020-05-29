@@ -1,0 +1,7 @@
+md5: ca2abf617f170c99685eb8fce69db244
+outs:
+- md5: 930162b63043e2d644989ecf70abc5e5.dir
+  path: learning-rate-2x-smaller
+  cache: true
+  metric: false
+  persist: false
