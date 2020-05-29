@@ -10,7 +10,7 @@ import torch
 import torchaudio
 from torch.nn.functional import mse_loss
 from torch.optim import Adam
-from torch.optim.lr_scheduler import LambdaLR
+from torch.optim.lr_scheduler import MultiplicativeLR
 from torch.utils.data import DataLoader, random_split
 
 from reformer_tts.config import Config, as_shallow_dict
@@ -129,7 +129,6 @@ class LitReformerTTS(pl.LightningModule):
             'val_post_pred_loss': mean([o['post_pred_loss'] for o in outputs]),
             'val_stop_mae': mean([o['stop_mae'] for o in outputs]),
             'val_loss': val_loss,
-            'val_stop_mae': mean([o['stop_mae'] for o in outputs]),
             **concat_inference_outputs,
         }
 
@@ -211,17 +210,17 @@ class LitReformerTTS(pl.LightningModule):
             gamma = np.log(schedule_config.initial_lr) - np.log(schedule_config.final_lr)
             gamma /= end - start
 
-            def exp_lr(current):
+            def exp_dec(current):
                 if start <= current <= end:
-                    lr = np.exp(-1 * gamma * float(current)) * schedule_config.initial_lr
-                elif start > current:
-                    lr = schedule_config.initial_lr
+                    a = np.exp(-1 * gamma * float(current)) * schedule_config.initial_lr
+                    b = np.exp(-1 * gamma * float(current-1)) * schedule_config.initial_lr
+                    decay = b / a
                 else:
-                    lr = schedule_config.final_lr
-                self.logger.log_metric("learning_rate", lr)
-                return lr
+                    decay = 1
+                self.logger.log_metric("learning_rate_decay", decay)
+                return decay
 
-            scheduler = LambdaLR(optimizer, exp_lr)
+            scheduler = MultiplicativeLR(optimizer, exp_dec)
             return [optimizer], [scheduler]
         else:
             return Adam(

@@ -98,7 +98,7 @@ def setup_callbacks(config: Config) -> Tuple[ModelCheckpoint, EarlyStopping]:
         verbose=True,
         monitor="val_loss",
         mode="min",
-        prefix=config.experiment.experiment_name,
+        prefix=config.experiment.experiment_name + "_",
     )
 
     if config.experiment.tts_training.early_stopping_epochs is not None:
