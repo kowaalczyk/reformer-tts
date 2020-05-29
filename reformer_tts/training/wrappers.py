@@ -204,6 +204,7 @@ class LitReformerTTS(pl.LightningModule):
                 self.model.parameters(),
                 schedule_config.initial_lr,
             )
+            assert schedule_config.start_schedule_epoch >= 1, "start_schedule_epoch has to be >= 1"
             start = schedule_config.start_schedule_epoch
             end = schedule_config.end_schedule_epoch
             end = self.config.experiment.max_epochs if end is None else end
