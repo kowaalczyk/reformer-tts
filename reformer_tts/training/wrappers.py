@@ -1,7 +1,7 @@
 import time
 from dataclasses import asdict
 from tempfile import NamedTemporaryFile
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader, random_split
 from reformer_tts.config import Config, as_shallow_dict
 from reformer_tts.dataset.interface import TextToSpectrogramDataset, SpectrogramToSpeechDataset
 from reformer_tts.dataset.utils import custom_sequence_padder, get_subset_lengths, AddGaussianNoise
-from reformer_tts.dataset.visualize import plot_spectrogram
+from reformer_tts.dataset.visualize import plot_spectrogram, plot_attention_matrix
 from reformer_tts.model.loss import TTSLoss
 from reformer_tts.model.reformer_tts import ReformerTTS
 from reformer_tts.squeeze_wave.loss import SqueezeWaveLoss
@@ -45,7 +45,6 @@ class LitReformerTTS(pl.LightningModule):
 
         assert self.config.experiment.tts_training.num_visualizations <= self.val_batch_size
 
-
     def forward(self, phonemes, spectrogram, stop_tokens, loss_mask, use_transform: bool = True):
         spectrogram_input = spectrogram
         if use_transform and self.transform:
@@ -54,7 +53,7 @@ class LitReformerTTS(pl.LightningModule):
             phonemes, spectrogram, spectrogram_input = phonemes.cuda(), spectrogram.cuda(), spectrogram_input.cuda()
             stop_tokens, loss_mask = stop_tokens.cuda(), loss_mask.cuda()
 
-        raw_mel_out, post_mel_out, stop_out = self.model.forward(
+        raw_mel_out, post_mel_out, stop_out, attention_matrices = self.model.forward(
             phonemes,
             spectrogram_input[:, :-1, :]
         )
@@ -74,7 +73,7 @@ class LitReformerTTS(pl.LightningModule):
         stop_err = stop_idx - torch.argmax(stop_tokens, dim=1)
         stop_mae = stop_err.abs().float().mean()
 
-        return loss, raw_mel_loss, post_mel_loss, stop_loss, stop_mae
+        return loss, raw_mel_loss, post_mel_loss, stop_loss, stop_mae, attention_matrices
 
     def prepare_data(self):
         dataset = TextToSpectrogramDataset(
@@ -85,7 +84,7 @@ class LitReformerTTS(pl.LightningModule):
         self.train_set, self.val_set, self.test_set = random_split(dataset, lengths)
 
     def training_step(self, batch, batch_idx):
-        loss, raw_mel_loss, post_mel_loss, stop_loss, _ = self.forward(
+        loss, raw_mel_loss, post_mel_loss, stop_loss, _, _ = self.forward(
             batch['phonemes'],
             batch['spectrogram'],
             batch['stop_tokens'],
@@ -100,12 +99,16 @@ class LitReformerTTS(pl.LightningModule):
         return {'loss': loss, 'log': logs}
 
     def validation_step(self, batch, batch_idx):
-        loss, raw_mel_loss, post_mel_loss, stop_loss, stop_mae = self.forward(
+        loss, raw_mel_loss, post_mel_loss, stop_loss, stop_mae, attention_matrices = self.forward(
             batch['phonemes'],
             batch['spectrogram'],
             batch['stop_tokens'],
             batch["loss_mask"],
             use_transform=False,
+        )
+        attention_matrices = self.trim_attention_matrices(
+            attention_matrices,
+            batch["stop_tokens"],
         )
         return {
             'stop_loss': stop_loss.cpu(),
@@ -113,6 +116,10 @@ class LitReformerTTS(pl.LightningModule):
             'post_pred_loss': post_mel_loss.cpu(),
             'loss': loss.cpu(),
             'stop_mae': stop_mae.cpu(),
+            'attention_matrices': [
+                (first_layer_matrix.cpu(), last_layer_matrix.cpu())
+                for first_layer_matrix, last_layer_matrix in attention_matrices
+            ]
         }
 
     def validation_epoch_end(self, outputs):
@@ -121,6 +128,18 @@ class LitReformerTTS(pl.LightningModule):
             return mean_value
 
         concat_inference_outputs = self.validate_inference("concat")
+
+        attention_matrices = [
+            (first_layer_matrix, last_layer_matrix)
+            for output in outputs
+            for first_layer_matrix, last_layer_matrix in output['attention_matrices']
+        ]
+        num_visualizations = self.config.experiment.tts_training.num_visualizations
+        attention_matrices = attention_matrices[:num_visualizations]
+        for first_layer_matrix, last_layer_matrix in attention_matrices:
+            assert first_layer_matrix.shape == last_layer_matrix.shape
+            self.logger.log_image("attention_first_layer", plot_attention_matrix(first_layer_matrix))
+            self.logger.log_image("attention_last_layer", plot_attention_matrix(last_layer_matrix))
 
         val_loss = mean([o['loss'] for o in outputs])
         logs = {
@@ -244,6 +263,21 @@ class LitReformerTTS(pl.LightningModule):
             return encoding
 
         return encoder
+
+    @staticmethod
+    def trim_attention_matrices(
+            attention_matrices: List[torch.Tensor],
+            stop_tokens: torch.Tensor,
+    ) -> List[Tuple[torch.Tensor, torch.Tensor]]:
+        assert len(attention_matrices) == 2
+        first_layer_matrices, last_layer_matrices = attention_matrices
+        stop_indexes = stop_tokens.argmax(dim=1)
+        assert len(first_layer_matrices) == len(last_layer_matrices) == len(stop_indexes)
+        return [
+            (first_layer_matrix[:stop_index, :], last_layer_matrix[:stop_index, :])
+            for first_layer_matrix, last_layer_matrix, stop_index
+            in zip(first_layer_matrices, last_layer_matrices, stop_indexes)
+        ]
 
 
 class LitSqueezeWave(pl.LightningModule):

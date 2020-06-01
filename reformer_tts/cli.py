@@ -19,7 +19,7 @@ from reformer_tts.config import Config
 from reformer_tts.dataset.convert import PhonemeSequenceCreator
 from reformer_tts.dataset.download import download_speech_videos_and_transcripts
 from reformer_tts.dataset.preprocess import preprocess_data
-from reformer_tts.dataset.visualize import plot_spectrogram
+from reformer_tts.dataset.visualize import plot_spectrogram, plot_attention_matrix
 from reformer_tts.squeeze_wave.modules import SqueezeWave
 from reformer_tts.training.train import train_tts as train_tts_function
 from reformer_tts.training.train import train_vocoder as train_vocoder_function
@@ -32,7 +32,7 @@ from reformer_tts.training.wrappers import LitSqueezeWave, LitReformerTTS
 def cli(ctx: Context, config):
     ctx.ensure_object(dict)
     ctx.obj["CONFIG"] = Config.from_yaml_file(config)
-    
+
 
 @cli.command()
 @click.option("-r", "--resume", type=str, default=None, help="Path to checkpoint to resume")
@@ -248,6 +248,55 @@ def predict_from_text(
                 config.dataset.audio_format.sampling_rate
             )
             print(f"Output saved to {audio_path.resolve()}")
+
+
+@cli.command()
+@click.option("-r", "--reformer-checkpoint", type=str, required=True, help="Path to reformer checkpoint")
+@click.option("-o", "--output-dir", type=str, required=True, help="Path where outputs will be saved")
+@click.pass_context
+def visualize_attention(ctx, reformer_checkpoint, output_dir):
+    config: Config = ctx.obj["CONFIG"]
+    output_dir = Path(output_dir)
+    output_dir.mkdir(exist_ok=True, parents=True)
+    if torch.cuda.is_available():
+        torch.set_default_tensor_type(torch.cuda.FloatTensor)
+        on_gpu = True
+        device = torch.device('cuda')
+    else:
+        on_gpu = False
+        device = torch.device('cpu')
+    reformer = LitReformerTTS.load_from_checkpoint(
+        reformer_checkpoint,
+        config=config,
+        on_gpu=on_gpu,
+    )
+    reformer = reformer.eval()
+    reformer.prepare_data()
+    batch = next(iter(reformer.val_dataloader()))
+    batch = {key: batch[key].to(device=device) for key in batch}
+    with torch.no_grad():
+        _, _, _, _, _, attention_matrices = reformer(
+            batch['phonemes'],
+            batch['spectrogram'],
+            batch['stop_tokens'],
+            batch["loss_mask"],
+            use_transform=False,
+        )
+        attention_matrices = reformer.trim_attention_matrices(
+            attention_matrices,
+            batch["stop_tokens"],
+        )
+        attention_matrices = [
+            (first_layer_matrix.cpu(), last_layer_matrix.cpu())
+            for first_layer_matrix, last_layer_matrix in attention_matrices
+        ]
+
+    for i, (first_layer_matrix, last_layer_matrix) in enumerate(attention_matrices):
+        assert first_layer_matrix.shape == last_layer_matrix.shape
+        plot_attention_matrix(first_layer_matrix)
+        plt.savefig(output_dir / f"{i}_first.png" )
+        plot_attention_matrix(last_layer_matrix)
+        plt.savefig(output_dir / f"{i}_last.png")
 
 
 @cli.command()

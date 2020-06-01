@@ -1,12 +1,12 @@
-from typing import Dict
+from typing import Dict, List, Optional
 
 import torch
 from reformer_pytorch import LSHSelfAttention
 from torch import nn
 
-from .config import FeedForwardConfig, LSHSelfAttentionConfig
 from .modules import FeedForward
 from .reversible import ReversibleSequence, ReversibleBlock, ReversibleHalfResidual, ReversibleSwap
+
 
 # This code fragment comes from https://github.com/lucidrains/reformer-pytorch/tree/master repository
 ################################################################################
@@ -100,13 +100,17 @@ class ReformerDec(nn.Module):
         super().__init__()
         self.dim = dim
         self.depth = depth
+        self.attention_matrices_ = []
 
         blocks = []
         norm_type = nn.LayerNorm
 
-        for _ in range(depth):
+        for i in range(depth):
             self_attn = LSHSelfAttention(dim, causal=True, **self_attn_kwargs)
-            attn = MultiheadAttentionWrapper(dim, **attn_kwargs)
+            if i in {0, depth - 1}:
+                attn = MultiheadAttentionWrapper(dim, self.attention_matrices_, **attn_kwargs)
+            else:
+                attn = MultiheadAttentionWrapper(dim, attention_matrices=None, **attn_kwargs)
             # causal has to be false because context is appended to input sequence
             ff = FeedForward(dim, **ff_kwargs)
 
@@ -139,22 +143,25 @@ class ReformerDec(nn.Module):
             kwargs["key"] = keys
             kwargs["value"] = keys
 
+        self.attention_matrices_.clear()
         x = self.layers(x, kwargs_list=kwargs_list)
-        return torch.stack(x.chunk(2, dim=-1)).sum(dim=0)
+        output = torch.stack(x.chunk(2, dim=-1)).sum(dim=0)
+        return output, self.attention_matrices_
 
 
 class MultiheadAttentionWrapper(nn.Module):
     """This class is introduced to change the order of forward parameters to be
      compatible with custom reversed framework
      """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, dim: int, attention_matrices: Optional[List[torch.Tensor]] = None, **kwargs):
         super().__init__()
-        self.layer = nn.MultiheadAttention(*args, **kwargs)
+        self.layer = nn.MultiheadAttention(dim, **kwargs)
+        self.attention_matrices_ = attention_matrices
 
     def forward(self, query, **kwargs):
         """
-        query: tensor of shape (batch_size, spec_seq_lenght, embed_dim)
-        kwargs['key']: tensor of shape (batch_size, text_seq_lenght, embed_dim)
+        query: tensor of shape (batch_size, spec_seq_length, embed_dim)
+        kwargs['key']: tensor of shape (batch_size, text_seq_length, embed_dim)
         returns: tensor of shape (batch_size, spec_seq_length, embed_dim
         """
         assert 'key' in kwargs, "forward expects keyword argument 'key'"
@@ -163,6 +170,8 @@ class MultiheadAttentionWrapper(nn.Module):
         key = kwargs['key'].transpose(1, 0)
         value = kwargs['key'].transpose(1, 0)
         kwargs = {k: v for k, v in kwargs.items() if k != "key" and k != "value"}
-        attn_out, _ = self.layer.forward(query, key, value, **kwargs)
+        attn_out, attention_matrix = self.layer.forward(query, key, value, **kwargs)
+        if not self.training and self.attention_matrices_ is not None:
+            self.attention_matrices_.append(attention_matrix)
         attn_out = attn_out.transpose(1, 0)
         return attn_out

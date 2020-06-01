@@ -33,3 +33,12 @@ def plot_spectrogram(
     formatted_spectrogram = formatted_spectrogram[0, :, :cutoff]
     ax = plt.imshow(formatted_spectrogram.numpy(), cmap='gray')
     return ax
+
+
+def plot_attention_matrix(attention_matrix: Tensor) -> plt.Figure:
+    assert attention_matrix.dim() == 2
+    aspect = attention_matrix.shape[1] / attention_matrix.shape[0]
+    figure = plt.figure()
+    axes = figure.add_subplot(111)
+    axes.matshow(attention_matrix.numpy(), aspect=aspect)
+    return figure

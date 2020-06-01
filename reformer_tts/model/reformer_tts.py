@@ -3,7 +3,6 @@ from typing import Dict, Tuple
 import torch
 from torch import nn
 
-from .config import ReformerDecConfig, ReformerEncConfig, EncoderPreNetConfig, DecoderPreNetConfig, PostConvNetConfig
 from .modules import EncoderPreNet, ScaledPositionalEncoding, DecoderPreNet, PostConvNet
 from .reformer import ReformerEnc, ReformerDec
 
@@ -57,10 +56,10 @@ class Decoder(nn.Module):
     def forward(self, input_, keys):
         input_ = self.prenet(input_)
         input_ = self.positional_encoding(input_)
-        input_ = self.reformer(input_, keys=keys)
+        input_, attention_matrices = self.reformer(input_, keys=keys)
         stop = self.stop_linear(input_)
         mel = self.mel_linear(input_)
-        return mel, stop
+        return mel, stop, attention_matrices
 
 
 class ReformerTTS(nn.Module):
@@ -98,7 +97,7 @@ class ReformerTTS(nn.Module):
 
     def forward(
             self, phonemes: torch.LongTensor, spectrogram: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         :param phonemes: of shape (batch size, phonemes length)
         :param spectrogram: of shape (batch size, spectrogram length, num_mel_coeffs)
@@ -112,13 +111,13 @@ class ReformerTTS(nn.Module):
         ).view((phonemes.shape[0], -1))
         pad_spec = pad_to_multiple(spectrogram, self.pad_base)
         keys = self.enc(pad_phonemes)
-        mel, stop = self.dec(pad_spec, keys=keys)
+        mel, stop, attention_matrices = self.dec(pad_spec, keys=keys)
 
         residual = self.postnet(mel)
         mel_postnet = mel + residual
 
         cutoff = spectrogram.shape[1]
-        return mel[:, :cutoff], mel_postnet[:, :cutoff], stop[:, :cutoff]
+        return mel[:, :cutoff], mel_postnet[:, :cutoff], stop[:, :cutoff], attention_matrices
 
     def infer(
             self, phonemes: torch.LongTensor, combine_strategy: str = "concat",
@@ -153,7 +152,7 @@ class ReformerTTS(nn.Module):
                 number_of_running_samples = sum(still_running)
                 print(f"reached {iteration=}, {number_of_running_samples=}...")
 
-            _, generated, stop_pred = self.forward(phonemes, spectrogram)
+            _, generated, stop_pred, _ = self.forward(phonemes, spectrogram)
             stop_pred = stop_pred.view(-1, generated.shape[1])  # view as (batch, len)
 
             if combine_strategy == "concat":
