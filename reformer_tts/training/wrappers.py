@@ -228,7 +228,7 @@ class LitReformerTTS(pl.LightningModule):
         optimizer_grouped_parameters = [
             {
                 "params": [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay)],
-                "weight_decay": self.config.tts_training.weight_decay,
+                "weight_decay": self.config.experiment.tts_training.weight_decay,
             },
             {
                 "params": [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)],
@@ -238,12 +238,12 @@ class LitReformerTTS(pl.LightningModule):
         optimizer = AdamW(
             optimizer_grouped_parameters, 
             lr=self.config.experiment.tts_training.learning_rate, 
-            weight_decay=self.config.tts_training.weight_decay,
+            weight_decay=self.config.experiment.tts_training.weight_decay,
         )
         scheduler = get_linear_schedule_with_warmup(
             optimizer, 
-            num_warmup_steps=self.config.tts_training.n_warmup_epochs, 
-            num_training_steps=self.config.tts_training.n_training_epochs
+            num_warmup_steps=self.config.experiment.tts_training.n_warmup_epochs, 
+            num_training_steps=self.config.experiment.tts_training.n_training_epochs
         )
         return [optimizer], [scheduler]
 

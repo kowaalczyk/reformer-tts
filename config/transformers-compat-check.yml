@@ -1,0 +1,52 @@
+# config based on attention-depth-3-heads-3
+data_directory: 'data/lj-speech-tacotron2'
+merged_transcript_csv_path: 'data/lj-speech-tacotron2/transcript.csv'
+audio_directory: 'data/lj-speech-tacotron2/audio'
+mel_directory: 'data/lj-speech-tacotron2/mel'
+dataset:
+  use_tacotron2_spectrograms: true
+  dict_size: 76
+  audio_format:
+    max_duration_ms: 768000
+    min_duration_ms: 1000
+    mono: true
+    sampling_rate: 22050
+  mel_format:
+    hop_length: 256
+    n_fft: 1024
+    n_mels: 80
+    win_length: 1024
+
+experiment:
+  experiment_name: "check-huggingface"
+  max_epochs: 20
+  train_workers: 12
+  val_workers: 12
+  tags: "debug"
+  tts_training:
+    batch_size: 30
+    weight_decay: 0.0001
+    num_visualizations: 4
+    accumulate_grad_batches: 2
+    gradient_clip_val:  1.
+    n_warmup_epochs: 4
+    n_training_epochs: 16
+  save_top_k_checkpoints: 3
+  # checkpoints_dir: /results/reformer-tts
+
+model:
+  dict_size: 76
+  num_mel_coeffs: 80
+  scp_encoding_dropout: 0.05
+  postnet_kwargs:
+    dropout: 0.1
+  enc_prenet_kwargs:
+    dropout: 0.05
+  dec_prenet_kwargs:
+    dropout: 0.05
+  enc_reformer_kwargs:
+    depth: 3
+  dec_reformer_kwargs:
+    depth: 3
+    attn_kwargs:
+      num_heads: 4
