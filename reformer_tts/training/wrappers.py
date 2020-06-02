@@ -13,6 +13,8 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import MultiplicativeLR
 from torch.utils.data import DataLoader, random_split
 
+from transformers.optimization import AdamW, get_linear_schedule_with_warmup
+
 from reformer_tts.config import Config, as_shallow_dict
 from reformer_tts.dataset.interface import TextToSpectrogramDataset, SpectrogramToSpeechDataset
 from reformer_tts.dataset.utils import custom_sequence_padder, get_subset_lengths, AddGaussianNoise
@@ -221,36 +223,29 @@ class LitReformerTTS(pl.LightningModule):
         )
 
     def configure_optimizers(self):
-        if self.config.experiment.tts_training.lr_scheduler is not None:
-            schedule_config = self.config.experiment.tts_training.lr_scheduler
-            optimizer = Adam(
-                self.model.parameters(),
-                schedule_config.initial_lr,
-            )
-            assert schedule_config.start_schedule_epoch >= 1, "start_schedule_epoch has to be >= 1"
-            start = schedule_config.start_schedule_epoch
-            end = schedule_config.end_schedule_epoch
-            end = self.config.experiment.max_epochs if end is None else end
-            gamma = np.log(schedule_config.initial_lr) - np.log(schedule_config.final_lr)
-            gamma /= end - start
-
-            def exp_dec(current):
-                if start <= current <= end:
-                    a = np.exp(-1 * gamma * float(current)) * schedule_config.initial_lr
-                    b = np.exp(-1 * gamma * float(current-1)) * schedule_config.initial_lr
-                    decay = a / b
-                else:
-                    decay = 1
-                self.logger.log_metric("learning_rate_decay", decay)
-                return decay
-
-            scheduler = MultiplicativeLR(optimizer, exp_dec)
-            return [optimizer], [scheduler]
-        else:
-            return Adam(
-                self.model.parameters(),
-                self.config.experiment.tts_training.learning_rate,
-            )
+        # based on: https://github.com/huggingface/transformers/blob/master/src/transformers/trainer.py#L291
+        no_decay = {"bias", "norm.weight"}  # norm.weight only applies to nn.LayerNorm
+        optimizer_grouped_parameters = [
+            {
+                "params": [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay)],
+                "weight_decay": self.config.tts_training.weight_decay,
+            },
+            {
+                "params": [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)],
+                "weight_decay": 0.0,
+            },
+        ]
+        optimizer = AdamW(
+            optimizer_grouped_parameters, 
+            lr=self.config.experiment.tts_training.learning_rate, 
+            weight_decay=self.config.tts_training.weight_decay,
+        )
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer, 
+            num_warmup_steps=self.config.tts_training.n_warmup_epochs, 
+            num_training_steps=self.config.tts_training.n_training_epochs
+        )
+        return [optimizer], [scheduler]
 
     def get_phoneme_encoder(self):
         # todo: there has to be a nicer way of extracting this !!!

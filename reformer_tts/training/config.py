@@ -3,14 +3,6 @@ from typing import Optional, Tuple
 
 
 @dataclass
-class LRSchedulerConfig:
-    initial_lr: float = 1e-4
-    final_lr: float = 1e-4
-    start_schedule_epoch: int = 0
-    end_schedule_epoch: Optional[int] = None
-
-
-@dataclass
 class TTSTrainingConfig:
     batch_size: int = 8
     learning_rate: float = 1e-4
@@ -21,7 +13,8 @@ class TTSTrainingConfig:
     noise_std: Optional[float] = None
     accumulate_grad_batches: int = 1
     gradient_clip_val: float = 0.  # 0 means don't clip
-    lr_scheduler: Optional[LRSchedulerConfig] = None
+    n_warmup_epochs: int = 4
+    n_training_epochs: int = 64  # todo: consider merging with ExperimentConfig.max_epochs
 
 @dataclass
 class VocoderTrainingConfig:
