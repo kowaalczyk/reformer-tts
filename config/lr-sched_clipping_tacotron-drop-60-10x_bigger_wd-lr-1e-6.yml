@@ -1,0 +1,52 @@
+# data_directory: '/scidatasm/mo382777/reformer-tts/data/lj-speech-tacotron2'
+# merged_transcript_csv_path: '/scidatasm/mo382777/reformer-tts/data/lj-speech-tacotron2/transcript.csv'
+# audio_directory: '/scidatasm/mo382777/reformer-tts/data/lj-speech-tacotron2/audio'
+# mel_directory: '/scidatasm/mo382777/reformer-tts/data/lj-speech-tacotron2/mel'
+data_directory: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2'
+merged_transcript_csv_path: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2/transcript.csv'
+audio_directory: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2/audio'
+mel_directory: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2/mel'
+dataset:
+  use_tacotron2_spectrograms: true
+  dict_size: 76
+  audio_format:
+    max_duration_ms: 768000
+    min_duration_ms: 1000
+    mono: true
+    sampling_rate: 22050
+  mel_format:
+    hop_length: 256
+    n_fft: 1024
+    n_mels: 80
+    win_length: 1024
+
+experiment:
+  experiment_name: "long_start_lr_1e-6_10x_bigger_wd_plus_ref-246"
+  max_epochs: 1000
+  train_workers: 12
+  val_workers: 12
+  tags: "lr_scheduling clipping_1 eff-b-size_60 tacotron-dropout lr_1e-6 10x_bigger_wd"
+  tts_training:
+    batch_size: 20
+    weight_decay: 0.001
+    num_visualizations: 4
+    accumulate_grad_batches: 3
+    gradient_clip_val:  1.
+    lr_scheduler:
+      initial_lr: 0.0003
+      final_lr: 0.000001
+      start_schedule_epoch: 4
+      end_schedule_epoch: 36
+  save_top_k_checkpoints: 3
+  checkpoints_dir: /results/reformer-tts
+
+model:
+  dict_size: 76
+  num_mel_coeffs: 80
+  scp_encoding_dropout: 0.05
+  postnet_kwargs:
+    dropout: 0.50
+  enc_prenet_kwargs:
+    dropout: 0.10
+  dec_prenet_kwargs:
+    dropout: 0.10
