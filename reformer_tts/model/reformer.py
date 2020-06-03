@@ -79,9 +79,18 @@ class ReformerEnc(nn.Module):
 
         self.layers = ReversibleSequence(nn.ModuleList(blocks))
 
-    def forward(self, x, list_kwargs=None):
+    def forward(self, x, input_mask=None, kwargs_list=None):
         x = torch.cat([x, x], dim=-1)
-        x = self.layers(x, list_kwargs=list_kwargs)
+
+        if kwargs_list is not None:
+            assert len(kwargs_list) == self.depth, "list_kwargs should be the length of ReversibleSequence"
+        else:
+            kwargs_list = [dict() for _ in range(self.depth)]
+
+        for kwargs in kwargs_list:  # get all self_attention layers kwargs
+            kwargs["f_args"] = {"input_mask": input_mask}
+
+        x = self.layers(x, kwargs_list=kwargs_list)
         return torch.stack(x.chunk(2, dim=-1)).sum(dim=0)
 
 
@@ -131,7 +140,7 @@ class ReformerDec(nn.Module):
         self.block_len = 6
         self.layers = ReversibleSequence(nn.ModuleList(blocks))
 
-    def forward(self, x, keys, kwargs_list=None):
+    def forward(self, x, keys, key_padding_mask=None, input_mask=None, kwargs_list=None):
         x = torch.cat([x, x], dim=-1)
 
         if kwargs_list is not None:
@@ -142,6 +151,10 @@ class ReformerDec(nn.Module):
         for kwargs in kwargs_list[2::6]:  # get all mid_attention kwargs
             kwargs["key"] = keys
             kwargs["value"] = keys
+            kwargs["key_padding_mask"] = key_padding_mask
+
+        for kwargs in kwargs_list[::6]:  # get all self_attention layers kwargs
+            kwargs["input_mask"] = input_mask
 
         self.attention_matrices_.clear()
         x = self.layers(x, kwargs_list=kwargs_list)
