@@ -181,17 +181,13 @@ class LitReformerTTS(pl.LightningModule):
         inference_stop_mae = torch.abs(stop_out - true_stop) \
             .to(dtype=torch.float).mean().cpu().item()
 
-        if mel_out.shape[0] < self.config.experiment.tts_training.num_visualizations:
-            print("WARNING: Skipping visualizations because there aren't enough samples.")
-            print("         Ignore this warning if this happens during sanity check.")
-        else:
-            for i in range(self.config.experiment.tts_training.num_visualizations):
-                with NamedTemporaryFile(suffix=".png") as f:
-                    clipped_mel_pred = mel_out[i, :, :stop_out[i].item()].unsqueeze(0)
-                    plot_spectrogram(clipped_mel_pred.cpu())
-                    plt.savefig(f.name)
-                    self.logger.log_image(f"sample-image-{inference_combine_strategy}", f.name)
-                    plt.close()
+        for i in range(self.config.experiment.tts_training.num_visualizations):
+            with NamedTemporaryFile(suffix=".png") as f:
+                clipped_mel_pred = mel_out[i, :, :stop_out[i].item()].unsqueeze(0)
+                plot_spectrogram(clipped_mel_pred.cpu())
+                plt.savefig(f.name)
+                self.logger.log_image(f"sample-image-{inference_combine_strategy}", f.name)
+                plt.close()
 
         output = {
             f"{inference_combine_strategy}_inference_time": inference_time,

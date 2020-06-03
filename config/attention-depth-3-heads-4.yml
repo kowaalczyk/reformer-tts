@@ -27,7 +27,7 @@ experiment:
   val_workers: 12
   tags: "regularization-exp clipping_1 bs_60 depth_3 heads_4"
   tts_training:
-    batch_size: 2
+    batch_size: 20
     weight_decay: 0.0001
     num_visualizations: 4
     accumulate_grad_batches: 3
