@@ -12,6 +12,7 @@ from torch.nn.functional import mse_loss
 from torch.optim import Adam
 from torch.optim.lr_scheduler import MultiplicativeLR
 from torch.utils.data import DataLoader, random_split
+from transformers.optimization import AdamW
 
 from reformer_tts.config import Config, as_shallow_dict
 from reformer_tts.dataset.interface import TextToSpectrogramDataset, SpectrogramToSpeechDataset
@@ -217,12 +218,26 @@ class LitReformerTTS(pl.LightningModule):
         )
 
     def configure_optimizers(self):
+        no_decay = {"bias", "norm.weight"}  # norm.weight only applies to nn.LayerNorm
+        optimizer_grouped_parameters = [
+            {
+                "params": [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay)],
+                "weight_decay": self.config.experiment.tts_training.weight_decay,
+            },
+            {
+                "params": [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)],
+                "weight_decay": 0.0,
+            },
+        ]
+        def get_optimizer(lr):
+            return AdamW(
+                optimizer_grouped_parameters, 
+                lr=lr, 
+                weight_decay=self.config.experiment.tts_training.weight_decay,
+            )
+
         if self.config.experiment.tts_training.lr_scheduler is not None:
             schedule_config = self.config.experiment.tts_training.lr_scheduler
-            optimizer = Adam(
-                self.model.parameters(),
-                schedule_config.initial_lr,
-            )
             assert schedule_config.start_schedule_epoch >= 1, "start_schedule_epoch has to be >= 1"
             start = schedule_config.start_schedule_epoch
             end = schedule_config.end_schedule_epoch
@@ -240,13 +255,12 @@ class LitReformerTTS(pl.LightningModule):
                 self.logger.log_metric("learning_rate_decay", decay)
                 return decay
 
+            optimizer = get_optimizer(schedule_config.initial_lr)
             scheduler = MultiplicativeLR(optimizer, exp_dec)
             return [optimizer], [scheduler]
         else:
-            return Adam(
-                self.model.parameters(),
-                self.config.experiment.tts_training.learning_rate,
-            )
+            optimizer = get_optimizer(self.config.experiment.tts_training.learning_rate)
+            return optimizer
 
     def get_phoneme_encoder(self):
         # todo: there has to be a nicer way of extracting this !!!
