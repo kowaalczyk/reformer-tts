@@ -1,0 +1,7 @@
+md5: b3603047f268c46731a810d3f8e3cde6
+outs:
+- md5: fe73d119ec910c938f32e6084c139c9a
+  path: epoch=987-val_loss=-6.03.ckpt
+  cache: true
+  metric: false
+  persist: false
