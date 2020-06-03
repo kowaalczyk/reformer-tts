@@ -26,4 +26,5 @@ psutil==5.7.0
 pandas==1.0.3
 google-cloud-storage==1.28.1
 pytest==5.4.2
+transformers==2.11.0
 -e .
