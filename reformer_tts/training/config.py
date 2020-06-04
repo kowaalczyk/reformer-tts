@@ -22,6 +22,7 @@ class TTSTrainingConfig:
     accumulate_grad_batches: int = 1
     gradient_clip_val: float = 0.  # 0 means don't clip
     lr_scheduler: Optional[LRSchedulerConfig] = None
+    warmup_steps: Optional[int] = None  # make sure warm-up ends before scheduling starts
 
 @dataclass
 class VocoderTrainingConfig:

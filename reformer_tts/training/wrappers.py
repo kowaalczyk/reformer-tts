@@ -263,6 +263,21 @@ class LitReformerTTS(pl.LightningModule):
             optimizer = get_optimizer(self.config.experiment.tts_training.learning_rate)
             return optimizer
 
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+        # warm up lr
+        warmup_steps = self.config.experiment.tts_training.warmup_steps
+        if warmup_steps is not None and self.trainer.global_step < warmup_steps:
+            base_lr = self.config.experiment.tts_training.learning_rate
+            if self.config.experiment.tts_training.lr_scheduler is not None:
+                base_lr = self.config.experiment.tts_training.lr_scheduler.initial_lr
+            lr_scale = min(1., float(self.trainer.global_step + 1) / warmup_steps)
+            for pg in optimizer.param_groups:
+                pg['lr'] = lr_scale * base_lr
+
+        # update params
+        optimizer.step()
+        optimizer.zero_grad()
+
     def get_phoneme_encoder(self):
         # todo: there has to be a nicer way of extracting this !!!
         if not hasattr(self, "train_set"):
