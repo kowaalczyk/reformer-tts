@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 
 import torch
 from torch import nn
@@ -25,10 +25,10 @@ class Encoder(nn.Module):
         self.positional_encoding = ScaledPositionalEncoding(embedding_dim, scp_encoding_dropout)
         self.reformer = ReformerEnc(embedding_dim, **reformer_kwargs)
 
-    def forward(self, input_):
+    def forward(self, input_, input_mask=None):
         input_ = self.prenet(input_)
         input_ = self.positional_encoding(input_)
-        input_ = self.reformer(input_)
+        input_ = self.reformer(input_, input_mask=input_mask)
 
         return input_
 
@@ -53,10 +53,15 @@ class Decoder(nn.Module):
         self.mel_linear = nn.Linear(embedding_dim, num_mel_coeffs)
         self.stop_linear = nn.Linear(embedding_dim, 1)
 
-    def forward(self, input_, keys):
+    def forward(self, input_, keys, key_padding_mask=None, input_mask=None):
         input_ = self.prenet(input_)
         input_ = self.positional_encoding(input_)
-        input_, attention_matrices = self.reformer(input_, keys=keys)
+        input_, attention_matrices = self.reformer(
+            input_,
+            keys=keys,
+            key_padding_mask=key_padding_mask,
+            input_mask=input_mask,
+        )
         stop = self.stop_linear(input_)
         mel = self.mel_linear(input_)
         return mel, stop, attention_matrices
@@ -96,7 +101,8 @@ class ReformerTTS(nn.Module):
         self.postnet = PostConvNet(num_mel_coeffs, num_hidden=embedding_dim, **postnet_kwargs)
 
     def forward(
-            self, phonemes: torch.LongTensor, spectrogram: torch.Tensor
+            self, phonemes: torch.LongTensor, spectrogram: torch.Tensor,
+            spectrogram_mask: Optional[torch.ByteTensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         :param phonemes: of shape (batch size, phonemes length)
@@ -107,11 +113,28 @@ class ReformerTTS(nn.Module):
         """
         pad_phonemes = pad_to_multiple(
             phonemes.view((*phonemes.shape, 1)),
-            self.pad_base
+            self.pad_base,
         ).view((phonemes.shape[0], -1))
+
+        phoneme_mask = (pad_phonemes != 0).to(dtype=torch.bool, device=spectrogram.device)
+        if spectrogram_mask is None:
+            spectrogram_mask = torch.ones(spectrogram.shape[:2], device=spectrogram.device)
+        spectrogram_mask = pad_to_multiple(
+            spectrogram_mask.view((*spectrogram_mask.shape, 1)),
+            self.pad_base,
+        ).view((spectrogram_mask.shape[0], -1)).to(dtype=torch.bool, device=spectrogram.device)
+
         pad_spec = pad_to_multiple(spectrogram, self.pad_base)
-        keys = self.enc(pad_phonemes)
-        mel, stop, attention_matrices = self.dec(pad_spec, keys=keys)
+        keys = self.enc(
+            pad_phonemes,
+            input_mask=phoneme_mask,
+        )
+        mel, stop, attention_matrices = self.dec(
+            pad_spec,
+            keys=keys,
+            key_padding_mask=~phoneme_mask,
+            input_mask=spectrogram_mask,
+        )
 
         residual = self.postnet(mel)
         mel_postnet = mel + residual
@@ -192,7 +215,7 @@ class ReformerTTS(nn.Module):
 
 def pad_to_multiple(tensor, pad_base):
     """
-    This function pads the sequence to be divisible by pad_base.
+    This function pads the sequence with zeros to be divisible by pad_base.
     Assumed tensor is of shape (batch, seq_len, channels)
     """
     new_len = ((tensor.shape[1] - 1) // pad_base + 1) * pad_base

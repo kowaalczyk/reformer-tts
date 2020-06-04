@@ -56,7 +56,8 @@ class LitReformerTTS(pl.LightningModule):
 
         raw_mel_out, post_mel_out, stop_out, attention_matrices = self.model.forward(
             phonemes,
-            spectrogram_input[:, :-1, :]
+            spectrogram_input[:, :-1, :],
+            spectrogram_mask=loss_mask.mean(dim=-1),
         )
         loss, raw_mel_loss, post_mel_loss, stop_loss = self.loss.forward(
             raw_mel_out,
