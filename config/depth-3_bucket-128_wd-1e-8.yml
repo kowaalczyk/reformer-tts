@@ -1,0 +1,57 @@
+# data_directory: '/scidatasm/mo382777/reformer-tts/data/lj-speech-tacotron2'
+# merged_transcript_csv_path: '/scidatasm/mo382777/reformer-tts/data/lj-speech-tacotron2/transcript.csv'
+# audio_directory: '/scidatasm/mo382777/reformer-tts/data/lj-speech-tacotron2/audio'
+# mel_directory: '/scidatasm/mo382777/reformer-tts/data/lj-speech-tacotron2/mel'
+data_directory: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2'
+merged_transcript_csv_path: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2/transcript.csv'
+audio_directory: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2/audio'
+mel_directory: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2/mel'
+dataset:
+  use_tacotron2_spectrograms: true
+  dict_size: 76
+  audio_format:
+    max_duration_ms: 768000
+    min_duration_ms: 1000
+    mono: true
+    sampling_rate: 22050
+  mel_format:
+    hop_length: 256
+    n_fft: 1024
+    n_mels: 80
+    win_length: 1024
+
+experiment:
+  experiment_name: "depth-3_bucket-128_wd-1e-8"
+  max_epochs: 1000
+  train_workers: 12
+  val_workers: 12
+  tags: "regularization-exp clipping_1 bs_60 depth_3 bucket_128 wd_1e-8"
+  tts_training:
+    batch_size: 12
+    weight_decay: 0.00000001
+    num_visualizations: 4
+    accumulate_grad_batches: 5
+    gradient_clip_val:  1.
+  save_top_k_checkpoints: 3
+  checkpoints_dir: /results/reformer-tts
+
+model:
+  dict_size: 76
+  num_mel_coeffs: 80
+  scp_encoding_dropout: 0.05
+  pad_base: 256
+  postnet_kwargs:
+    dropout: 0.1
+  enc_prenet_kwargs:
+    dropout: 0.05
+  dec_prenet_kwargs:
+    dropout: 0.05
+  enc_reformer_kwargs:
+    depth: 3 
+    attn_kwargs:
+      bucket_size: 128
+  dec_reformer_kwargs:
+    depth: 3
+    self_attn_kwargs:
+      bucket_size: 128
+  
