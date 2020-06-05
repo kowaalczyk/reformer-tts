@@ -138,10 +138,18 @@ class LitReformerTTS(pl.LightningModule):
         ]
         num_visualizations = self.config.experiment.tts_training.num_visualizations
         attention_matrices = attention_matrices[:num_visualizations]
-        for first_layer_matrix, last_layer_matrix in attention_matrices:
+        for i, (first_layer_matrix, last_layer_matrix) in enumerate(attention_matrices):
             assert first_layer_matrix.shape == last_layer_matrix.shape
-            self.logger.log_image("attention_first_layer", plot_attention_matrix(first_layer_matrix))
-            self.logger.log_image("attention_last_layer", plot_attention_matrix(last_layer_matrix))
+            with NamedTemporaryFile(suffix=".png") as f:
+                fig = plot_attention_matrix(first_layer_matrix)
+                self.logger.log_image("attention_first_layer", fig)
+                fig.savefig(f.name)
+                self.logger.log_artifact(f.name, f"attention_first_layer/viz{i}_e{self.current_epoch}.png")
+            with NamedTemporaryFile(suffix=".png") as f:
+                fig = plot_attention_matrix(last_layer_matrix)
+                self.logger.log_image("attention_last_layer", fig)
+                fig.savefig(f.name)
+                self.logger.log_artifact(f.name, f"attention_last_layer/viz{i}_e{self.current_epoch}.png")
 
         val_loss = mean([o['loss'] for o in outputs])
         logs = {
@@ -189,6 +197,7 @@ class LitReformerTTS(pl.LightningModule):
                 plot_spectrogram(clipped_mel_pred.cpu())
                 plt.savefig(f.name)
                 self.logger.log_image(f"sample-image-{inference_combine_strategy}", f.name)
+                self.logger.log_artifact(f.name, f'inference-{inference_combine_strategy}/viz{i}_e{self.current_epoch}.png')
                 plt.close()
 
         output = {
