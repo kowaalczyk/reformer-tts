@@ -1,0 +1,7 @@
+md5: 8fe1378a1b6e50721b3ea57011946a8a
+outs:
+- md5: 2f8a547bd40a269178f645e9482b0c9c
+  path: bucket-size-128_epoch=64-val_loss=0.24.ckpt
+  cache: true
+  metric: false
+  persist: false

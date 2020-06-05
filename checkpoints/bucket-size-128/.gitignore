@@ -1,0 +1,3 @@
+/bucket-size-128_epoch=45-val_loss=0.25.ckpt
+/bucket-size-128_epoch=62-val_loss=0.25.ckpt
+/bucket-size-128_epoch=64-val_loss=0.24.ckpt
