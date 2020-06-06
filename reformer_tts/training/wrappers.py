@@ -145,11 +145,13 @@ class LitReformerTTS(pl.LightningModule):
                 self.logger.log_image("attention_first_layer", fig)
                 fig.savefig(f.name)
                 self.logger.log_artifact(f.name, f"attention_first_layer/viz{i}_e{self.current_epoch}.png")
+                plt.close()
             with NamedTemporaryFile(suffix=".png") as f:
                 fig = plot_attention_matrix(last_layer_matrix)
                 self.logger.log_image("attention_last_layer", fig)
                 fig.savefig(f.name)
                 self.logger.log_artifact(f.name, f"attention_last_layer/viz{i}_e{self.current_epoch}.png")
+                plt.close()
 
         val_loss = mean([o['loss'] for o in outputs])
         logs = {
