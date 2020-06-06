@@ -228,6 +228,11 @@ class LitReformerTTS(pl.LightningModule):
         )
 
     def configure_optimizers(self):
+        # log config here because it's the only place where we always have the logger (it's never called during inference)
+        with NamedTemporaryFile(suffix=".yml") as f:
+            self.config.to_yaml_file(f.name)
+            self.logger.log_artifact(f.name, "config.yml")
+
         no_decay = {"bias", "norm.weight"}  # norm.weight only applies to nn.LayerNorm
         optimizer_grouped_parameters = [
             {
@@ -241,8 +246,8 @@ class LitReformerTTS(pl.LightningModule):
         ]
         def get_optimizer(lr):
             return AdamW(
-                optimizer_grouped_parameters, 
-                lr=lr, 
+                optimizer_grouped_parameters,
+                lr=lr,
                 weight_decay=self.config.experiment.tts_training.weight_decay,
             )
 
