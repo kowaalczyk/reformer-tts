@@ -21,17 +21,18 @@ dataset:
     win_length: 1024
 
 experiment:
-  experiment_name: "small-size-no-decay"
+  experiment_name: "small_size-warm_up-bucket_128-decay_1e-9"
   max_epochs: 1000
   train_workers: 12
   val_workers: 12
-  tags: "clipping_1 bs_60 depth_3 wd_1e-9"
+  tags: "clipping_1 bs_60 depth_3 bucket_128 wd_1e-9 warm_up"
   tts_training:
-    batch_size: 20
+    batch_size: 12
     weight_decay: 0.000000001
     num_visualizations: 4
-    accumulate_grad_batches: 3
+    accumulate_grad_batches: 5
     gradient_clip_val:  1.
+    warmup_steps: 320
   save_top_k_checkpoints: 3
   checkpoints_dir: /results/reformer-tts
 
@@ -39,6 +40,7 @@ model:
   dict_size: 76
   num_mel_coeffs: 80
   scp_encoding_dropout: 0.05
+  pad_base: 256
   postnet_kwargs:
     dropout: 0.1
   enc_prenet_kwargs:
@@ -47,5 +49,9 @@ model:
     dropout: 0.05
   enc_reformer_kwargs:
     depth: 3
+    attn_kwargs:
+      bucket_size: 128
   dec_reformer_kwargs:
     depth: 3
+    self_attn_kwargs:
+      bucket_size: 128
