@@ -8,5 +8,6 @@ setup(
     install_requires=[],
     entry_points="""
         [console_scripts]
+        reformercli=reformer_tts.cli:cli
     """,
 )
