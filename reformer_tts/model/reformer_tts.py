@@ -143,8 +143,13 @@ class ReformerTTS(nn.Module):
         return mel[:, :cutoff], mel_postnet[:, :cutoff], stop[:, :cutoff], attention_matrices
 
     def infer(
-            self, phonemes: torch.LongTensor, combine_strategy: str = "concat",
-            max_len: int = 1024, stop_threshold: float = 0.25, verbose: bool = False
+            self,
+            phonemes: torch.LongTensor,
+            combine_strategy: str = "concat",
+            max_len: int = 1024,
+            stop_threshold: float = 0.25,
+            verbose: bool = False,
+            stop_at_stop_token: bool = True,
     ) -> Tuple[torch.Tensor, torch.LongTensor]:
         """
         Run inference loop to generate a new spectrogram
@@ -154,8 +159,9 @@ class ReformerTTS(nn.Module):
             "replace" to replace previous output using output from current iteration
         :param max_len: maximum length of generated spectrogram
         :param stop_threshold: value in (-1 , 1) above which sigmoid(stop_pred)
-            is consirered to indicate end of predicted sequence
+            is considered to indicate end of predicted sequence
         :param verbose: if true, prints progress info every 10 steps (useful for cpu)
+        :param stop_at_stop_token: if true, ignores the stop threshold and stops only at max_len
         :return: tuple (spectrogram, stop_idx) where
             spectrogram shape = (batch size, num_mel_coeffs, spectrogram length)
             stop_idx shape = (batch size), contains end index for each spectrogram in batch
@@ -182,25 +188,27 @@ class ReformerTTS(nn.Module):
                 generated_slice = generated[:, -1, :].view(batch_size, 1, self.num_mel_coeffs)
                 spectrogram = torch.cat([spectrogram, generated_slice], dim=1)
 
-                stops_now = torch.sigmoid(stop_pred[:, -1]) > stop_threshold
-                still_running_stops_now = still_running * stops_now
-                stop = torch.where(
-                    still_running_stops_now,
-                    (stops_now.to(dtype=torch.long) * iteration) + 1,
-                    stop
-                )
+                if stop_at_stop_token:
+                    stops_now = torch.sigmoid(stop_pred[:, -1]) > stop_threshold
+                    still_running_stops_now = still_running * stops_now
+                    stop = torch.where(
+                        still_running_stops_now,
+                        (stops_now.to(dtype=torch.long) * iteration) + 1,
+                        stop
+                    )
             elif combine_strategy == "replace":
                 spectrogram = torch.cat([zeros, generated], dim=1)
 
-                stops_now = torch.any(
-                    torch.sigmoid(stop_pred) > stop_threshold, dim=1
-                )
-                still_running_stops_now = stops_now * still_running
-                stop = torch.where(
-                    still_running_stops_now,
-                    torch.argmax(stop_pred, dim=1) + 1,
-                    stop
-                )
+                if stop_at_stop_token:
+                    stops_now = torch.any(
+                        torch.sigmoid(stop_pred) > stop_threshold, dim=1
+                    )
+                    still_running_stops_now = stops_now * still_running
+                    stop = torch.where(
+                        still_running_stops_now,
+                        torch.argmax(stop_pred, dim=1) + 1,
+                        stop
+                    )
 
             if max(spectrogram.shape) > max_len:
                 if verbose:

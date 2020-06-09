@@ -36,7 +36,10 @@ class LitReformerTTS(pl.LightningModule):
 
         self.model = ReformerTTS(**asdict(self.config.model))
         self.loss = TTSLoss(
-            torch.tensor(self.config.experiment.tts_training.positive_stop_weight)
+            torch.tensor(self.config.experiment.tts_training.positive_stop_weight),
+            raw_pred_loss_weight=config.experiment.tts_training.raw_pred_loss_weight,
+            post_pred_loss_weight=config.experiment.tts_training.post_pred_loss_weight,
+            stop_loss_weight=config.experiment.tts_training.stop_loss_weight,
         )
         if noise_std := config.experiment.tts_training.noise_std is not None:
             self.transform = AddGaussianNoise(mean=0, std=noise_std)
@@ -181,7 +184,12 @@ class LitReformerTTS(pl.LightningModule):
             true_stop = true_stop.cuda()
 
         start = time.time()
-        mel_out, stop_out = self.model.infer(phonemes, combine_strategy=inference_combine_strategy)
+        stop_at_stop_token = self.config.experiment.tts_training.stop_loss_weight != 0.
+        mel_out, stop_out = self.model.infer(
+            phonemes,
+            combine_strategy=inference_combine_strategy,
+            stop_at_stop_token=stop_at_stop_token,
+        )
         inference_time = time.time() - start
 
         padded_mel_out = torch.zeros_like(true_mel)

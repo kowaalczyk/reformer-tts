@@ -231,8 +231,12 @@ def predict_from_text(
             phonemes = " ".join(phonemes)
             phonemes = phoneme_encoder(phonemes).unsqueeze(0).to(device=device)
 
+            stop_at_stop_token = config.experiment.tts_training.stop_loss_weight != 0.
             spectrogram, stop = reformer.model.infer(
-                phonemes, combine_strategy=strategy, verbose=True
+                phonemes,
+                combine_strategy=strategy,
+                verbose=True,
+                stop_at_stop_token=stop_at_stop_token,
             )
             spectrogram = spectrogram[:, :, :stop.item()]
             audio_out = squeeze_wave.infer(spectrogram)

@@ -23,6 +23,10 @@ class TTSTrainingConfig:
     gradient_clip_val: float = 0.  # 0 means don't clip
     lr_scheduler: Optional[LRSchedulerConfig] = None
     warmup_steps: Optional[int] = None  # make sure warm-up ends before scheduling starts
+    raw_pred_loss_weight: float = 1.
+    post_pred_loss_weight: float = 1.
+    stop_loss_weight: float = 1.
+
 
 @dataclass
 class VocoderTrainingConfig:
