@@ -14,6 +14,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import NeptuneLogger
 from torch.nn.functional import mse_loss
 from tqdm import trange, tqdm
+import neptune
 
 from reformer_tts.config import Config
 from reformer_tts.dataset.convert import PhonemeSequenceCreator
@@ -314,6 +315,21 @@ def save_config(ctx: Context, output):
     config = ctx.obj["CONFIG"]
     config.to_yaml_file(output)
     print(f"Config saved to {output}")
+
+
+@cli.command()
+@click.argument('idx', type=str)
+def remove_image_logs(idx):
+    """ Remove all image logs from experiment"""
+    proj = neptune.init("reformer-tts/reformer-tts")
+    exp = proj.get_experiments(idx)[0]
+    logs = exp.get_channels()
+
+    for name, channel in logs.items():
+        if channel.channelType == 'image':
+            exp.reset_log(name)
+
+    exp.set_property('cleaned_image_logs', True)
 
 
 if __name__ == "__main__":
