@@ -65,6 +65,7 @@ class DecoderPreNetConfig:
 
 @dataclass
 class PostConvNetConfig:
+    depth: int = 4
     dropout: float = 0.  # 0.1 originally in Transformer-TTS
 
 

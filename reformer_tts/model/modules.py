@@ -105,7 +105,8 @@ class PostConvNet(nn.Module):
             self,
             mel_size: int,
             num_hidden: int,
-            dropout: float
+            dropout: float,
+            depth: int,
     ):
         """
         :param mel_size: number of mel spectrogram coefficients
@@ -125,7 +126,7 @@ class PostConvNet(nn.Module):
         def _get_batch_norm():
             return nn.BatchNorm1d(num_hidden)
 
-        def _get_conv1():
+        def _get_conv0():
             return nn.Conv1d(
                 in_channels=mel_size,
                 out_channels=num_hidden,
@@ -142,29 +143,20 @@ class PostConvNet(nn.Module):
             )
 
         # Dropout is not described in paper, but it was implemented in found Transformer-TTS repo. To consider
-        self.layers = nn.Sequential(OrderedDict([
-            ('conv1', _get_conv1()),
-            ('bn1', _get_batch_norm()),
-            ('tanh1', nn.Tanh()),
-            ('dropout1', nn.Dropout(dropout)),
+        def _get_layer(i: int):
+            conv = _get_conv0() if i==0 else _get_conv()
+            return [
+                (f'conv{i}', conv),
+                (f'bn{i}', _get_batch_norm()),
+                (f'tanh{i}', nn.Tanh()),
+                (f'dropout{i}', nn.Dropout(dropout)),
+            ]
 
-            ('conv2', _get_conv()),
-            ('bn2', _get_batch_norm()),
-            ('tanh2', nn.Tanh()),
-            ('dropout2', nn.Dropout(dropout)),
-
-            ('conv3', _get_conv()),
-            ('bn3', _get_batch_norm()),
-            ('tanh3', nn.Tanh()),
-            ('dropout3', nn.Dropout(dropout)),
-
-            ('conv4', _get_conv()),
-            ('bn4', _get_batch_norm()),
-            ('tanh4', nn.Tanh()),
-            ('dropout4', nn.Dropout(dropout)),
-
-            ('conv5', _get_conv_end())
-        ]))
+        layers = list()
+        for i in range(depth):
+            layers += _get_layer(i)
+        layers += [('convend', _get_conv_end())]
+        self.layers = nn.Sequential(OrderedDict(layers))
 
     def forward(self, input_):
         """

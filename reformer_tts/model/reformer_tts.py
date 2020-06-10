@@ -98,7 +98,7 @@ class ReformerTTS(nn.Module):
             reformer_kwargs=dec_reformer_kwargs,
         )
         self.pad_base = pad_base
-        self.postnet = PostConvNet(num_mel_coeffs, num_hidden=embedding_dim, **postnet_kwargs)
+        self.postnet = PostConvNet(mel_size=num_mel_coeffs, num_hidden=embedding_dim, **postnet_kwargs)
 
     def forward(
             self, phonemes: torch.LongTensor, spectrogram: torch.Tensor,
