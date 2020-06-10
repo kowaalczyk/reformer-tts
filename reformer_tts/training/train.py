@@ -82,8 +82,8 @@ def setup_trainer(config: Config, gpus: int, logger: LightningLoggerBase) -> Tra
         logger=logger,
         checkpoint_callback=checkpoint_callback,
         early_stop_callback=early_stop_callback,
-        log_save_interval=50,
-        row_log_interval=5,
+        log_save_interval=250,
+        row_log_interval=50,
         accumulate_grad_batches=config.experiment.tts_training.accumulate_grad_batches,
         gradient_clip_val=config.experiment.tts_training.gradient_clip_val,
     )
