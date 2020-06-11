@@ -1,7 +1,7 @@
 from typing import Tuple
 
 from torch import nn, Tensor
-from torch.nn.functional import mse_loss, binary_cross_entropy_with_logits
+from torch.nn.functional import binary_cross_entropy_with_logits
 
 
 class TTSLoss(nn.Module):
@@ -10,13 +10,20 @@ class TTSLoss(nn.Module):
             pos_weight: Tensor,
             raw_pred_loss_weight: float = 1.,
             post_pred_loss_weight: float = 1.,
-            stop_loss_weight: float = 1.
+            stop_loss_weight: float = 1.,
+            spectrogram_loss: str = "mse",
     ):
         super().__init__()
         self.pos_weight = pos_weight
         self.raw_pred_loss_weight = raw_pred_loss_weight
         self.post_pred_loss_weight = post_pred_loss_weight
         self.stop_loss_weight = stop_loss_weight
+        if spectrogram_loss == "mse":
+            self.spectrogram_loss = nn.MSELoss()
+        elif spectrogram_loss == "l1":
+            self.spectrogram_loss = nn.L1Loss()
+        else:
+            raise RuntimeError(f"Unsupported loss type: {spectrogram_loss}")
 
     def forward(
             self, raw_mel_out, postnet_mel_out, stop_out, true_mel, true_stop, true_mask
@@ -29,10 +36,10 @@ class TTSLoss(nn.Module):
         assert stop_out.shape == true_stop.shape
 
         raw_mel_out *= true_mask
-        raw_mel_loss = mse_loss(raw_mel_out, true_mel)
+        raw_mel_loss = self.spectrogram_loss(raw_mel_out, true_mel)
 
         postnet_mel_out *= true_mask
-        postnet_mel_loss = mse_loss(postnet_mel_out, true_mel)
+        postnet_mel_loss = self.spectrogram_loss(postnet_mel_out, true_mel)
 
         stop_loss = binary_cross_entropy_with_logits(
             stop_out,

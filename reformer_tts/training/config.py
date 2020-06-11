@@ -26,6 +26,7 @@ class TTSTrainingConfig:
     raw_pred_loss_weight: float = 1.
     post_pred_loss_weight: float = 1.
     stop_loss_weight: float = 1.
+    spectrogram_loss: "mse"  # "mse" or "l1"
 
 
 @dataclass

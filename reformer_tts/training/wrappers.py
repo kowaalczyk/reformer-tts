@@ -40,6 +40,7 @@ class LitReformerTTS(pl.LightningModule):
             raw_pred_loss_weight=config.experiment.tts_training.raw_pred_loss_weight,
             post_pred_loss_weight=config.experiment.tts_training.post_pred_loss_weight,
             stop_loss_weight=config.experiment.tts_training.stop_loss_weight,
+            spectrogram_loss=config.experiment.tts_training.spectrogram_loss,
         )
         if noise_std := config.experiment.tts_training.noise_std is not None:
             self.transform = AddGaussianNoise(mean=0, std=noise_std)
