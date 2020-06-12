@@ -218,6 +218,7 @@ class LitReformerTTS(pl.LightningModule):
             drop_last=True,
             collate_fn=custom_sequence_padder,
             num_workers=self.train_num_workers,
+            shuffle=True,
         )
 
     @pl.data_loader
@@ -398,6 +399,7 @@ class LitSqueezeWave(pl.LightningModule):
             batch_size=self.train_batch_size,
             drop_last=True,
             num_workers=self.train_num_workers,
+            shuffle=True,
         )
 
     @pl.data_loader
