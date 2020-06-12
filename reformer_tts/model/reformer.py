@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional
 
 import torch
-from reformer_pytorch import LSHSelfAttention
 from torch import nn
 
 from .modules import FeedForward
@@ -66,7 +65,7 @@ class ReformerEnc(nn.Module):
         norm_type = nn.LayerNorm
 
         for _ in range(depth):
-            self_attn = LSHSelfAttention(dim, causal=False, **attn_kwargs)
+            self_attn = LSHSelfAttentionWrapper(dim, causal=False, **attn_kwargs)
             ff = FeedForward(dim, **ff_kwargs)
 
             normed_self_attn = WithNorm(norm_type, dim, self_attn)
@@ -115,7 +114,7 @@ class ReformerDec(nn.Module):
         norm_type = nn.LayerNorm
 
         for i in range(depth):
-            self_attn = LSHSelfAttention(dim, causal=True, **self_attn_kwargs)
+            self_attn = LSHSelfAttentionWrapper(dim, causal=True, **self_attn_kwargs)
             attn = MultiheadAttentionWrapper(dim, self.attention_matrices_, **attn_kwargs)
             # causal has to be false because context is appended to input sequence
             ff = FeedForward(dim, **ff_kwargs)
@@ -185,3 +184,37 @@ class MultiheadAttentionWrapper(nn.Module):
             self.attention_matrices_.append(attention_matrix)
         attn_out = attn_out.transpose(1, 0)
         return attn_out
+
+
+class LSHSelfAttentionWrapper(nn.Module):
+    def __init__(self, dim: int, causal: bool, **kwargs):
+        super().__init__()
+
+        assert "implementation" in kwargs
+        assert kwargs["implementation"] in {"huggingface_transformers", "reformer_pytorch"}
+        self.implementation = kwargs["implementation"]
+        del kwargs["implementation"]
+
+        if self.implementation == "reformer_pytorch":
+            from reformer_pytorch import LSHSelfAttention
+            self.layer = LSHSelfAttention(dim, causal=causal, **kwargs)
+        else:
+            from transformers import ReformerConfig
+            from transformers.modeling_reformer import LSHSelfAttention
+            config = ReformerConfig(
+                hidden_size=dim,  # their default: 256, our default: 512
+                is_decoder=causal,
+                num_attention_heads=kwargs["heads"],  # their default: 12, our default: 8
+                num_hashes=kwargs["n_hashes"],  # their default: 1, our default: 8
+                lsh_attention_probs_dropout_prob=kwargs["dropout"],  # their default: 0.1, our default: 0
+                lsh_attn_chunk_length=kwargs["bucket_size"],  # their default: 64, our default: 64
+                attention_head_size=dim//kwargs["heads"],  # their default: 64, our default: 512/8 = 64
+            )
+            self.layer = LSHSelfAttention(config)
+
+    def forward(self, x: torch.Tensor, input_mask: torch.Tensor = None):
+        if self.implementation == "reformer_pytorch":
+            return self.layer.forward(x, input_mask=input_mask)
+        else:
+            output = self.layer.forward(x, attention_mask=input_mask)
+            return output.hidden_states

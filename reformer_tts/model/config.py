@@ -9,6 +9,7 @@ class FeedForwardConfig:
 
 @dataclass
 class LSHSelfAttentionConfig:
+    implementation: str = "reformer_pytorch"  # or "huggingface_transformers"
     heads: int = 8
     bucket_size: int = 64
     n_hashes: int = 8
