@@ -28,6 +28,7 @@ experiment:
     num_visualizations: 4
     accumulate_grad_batches: 5
     gradient_clip_val:  1.
+    warmup_steps: 320
     spectrogram_loss: "l1"
   save_top_k_checkpoints: 3
   checkpoints_dir: /results/reformer-tts
