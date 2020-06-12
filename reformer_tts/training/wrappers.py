@@ -116,7 +116,6 @@ class LitReformerTTS(pl.LightningModule):
             attention_matrices,
             batch["stop_tokens"],
         )
-        print(f"{[len(matrices) for matrices in attention_matrices]=}")
         return {
             'stop_loss': stop_loss.cpu(),
             'raw_pred_loss': raw_mel_loss.cpu(),
