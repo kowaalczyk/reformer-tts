@@ -1,7 +1,3 @@
-# data_directory: '/scidatasm/mo382777/reformer-tts/data/lj-speech-tacotron2'
-# merged_transcript_csv_path: '/scidatasm/mo382777/reformer-tts/data/lj-speech-tacotron2/transcript.csv'
-# audio_directory: '/scidatasm/mo382777/reformer-tts/data/lj-speech-tacotron2/audio'
-# mel_directory: '/scidatasm/mo382777/reformer-tts/data/lj-speech-tacotron2/mel'
 data_directory: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2'
 merged_transcript_csv_path: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2/transcript.csv'
 audio_directory: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2/audio'
@@ -21,20 +17,17 @@ dataset:
     win_length: 1024
 
 experiment:
-  experiment_name: "postnet_2-no_raw_pred"
+  experiment_name: "baseline-12-06"
   max_epochs: 1000
   train_workers: 12
   val_workers: 12
-  tags: "clipping_1 bs_60 depth_3 bucket_128 wd_1e-7 small_postnet warm-up_320 no_raw_pred"
+  tags: "baseline shuffle wd_1e-7 bs_60 postnet_2 depth_3 enc_bucket_64 dec_bucket_128"
   tts_training:
     batch_size: 12
     weight_decay: 0.0000001
     num_visualizations: 4
     accumulate_grad_batches: 5
     gradient_clip_val:  1.
-    warmup_steps: 320
-    raw_pred_loss_weight: 0
-    post_pred_loss_weight: 2
   save_top_k_checkpoints: 3
   checkpoints_dir: /results/reformer-tts
 
@@ -43,18 +36,16 @@ model:
   num_mel_coeffs: 80
   scp_encoding_dropout: 0.05
   pad_base: 256
-  postnet_kwargs:
-    depth: 2
-    dropout: 0.1
   enc_prenet_kwargs:
     dropout: 0.05
   dec_prenet_kwargs:
     dropout: 0.05
   enc_reformer_kwargs:
     depth: 3
-    attn_kwargs:
-      bucket_size: 128
   dec_reformer_kwargs:
     depth: 3
     self_attn_kwargs:
       bucket_size: 128
+  postnet_kwargs:
+    depth: 2
+    dropout: 0.1
