@@ -116,10 +116,7 @@ class ReformerDec(nn.Module):
 
         for i in range(depth):
             self_attn = LSHSelfAttention(dim, causal=True, **self_attn_kwargs)
-            if i in {0, depth - 1}:
-                attn = MultiheadAttentionWrapper(dim, self.attention_matrices_, **attn_kwargs)
-            else:
-                attn = MultiheadAttentionWrapper(dim, attention_matrices=None, **attn_kwargs)
+            attn = MultiheadAttentionWrapper(dim, self.attention_matrices_, **attn_kwargs)
             # causal has to be false because context is appended to input sequence
             ff = FeedForward(dim, **ff_kwargs)
 

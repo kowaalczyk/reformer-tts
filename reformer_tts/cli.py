@@ -6,15 +6,12 @@ from typing import Optional
 
 import click
 import matplotlib.pyplot as plt
+import neptune
 import torch
 import torchaudio
 from click import Context
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
-from pytorch_lightning.loggers import NeptuneLogger
 from torch.nn.functional import mse_loss
 from tqdm import trange, tqdm
-import neptune
 
 from reformer_tts.config import Config
 from reformer_tts.dataset.convert import PhonemeSequenceCreator
@@ -292,16 +289,13 @@ def visualize_attention(ctx, reformer_checkpoint, output_dir):
             batch["stop_tokens"],
         )
         attention_matrices = [
-            (first_layer_matrix.cpu(), last_layer_matrix.cpu())
-            for first_layer_matrix, last_layer_matrix in attention_matrices
+            [matrix.cpu() for matrix in matrices] for matrices in attention_matrices
         ]
 
-    for i, (first_layer_matrix, last_layer_matrix) in enumerate(attention_matrices):
-        assert first_layer_matrix.shape == last_layer_matrix.shape
-        plot_attention_matrix(first_layer_matrix)
-        plt.savefig(output_dir / f"{i}_first.png" )
-        plot_attention_matrix(last_layer_matrix)
-        plt.savefig(output_dir / f"{i}_last.png")
+    for i, matrices in enumerate(attention_matrices):
+        for j, matrix in enumerate(matrices):
+            plot_attention_matrix(matrix)
+            plt.savefig(output_dir / f"{i}_{j}.png")
 
 
 @cli.command()

@@ -1,10 +1,10 @@
 import time
 from dataclasses import asdict
 from tempfile import NamedTemporaryFile
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import pytorch_lightning as pl
 import torch
 import torchaudio
@@ -116,6 +116,7 @@ class LitReformerTTS(pl.LightningModule):
             attention_matrices,
             batch["stop_tokens"],
         )
+        print(f"{[len(matrices) for matrices in attention_matrices]=}")
         return {
             'stop_loss': stop_loss.cpu(),
             'raw_pred_loss': raw_mel_loss.cpu(),
@@ -123,8 +124,7 @@ class LitReformerTTS(pl.LightningModule):
             'loss': loss.cpu(),
             'stop_mae': stop_mae.cpu(),
             'attention_matrices': [
-                (first_layer_matrix.cpu(), last_layer_matrix.cpu())
-                for first_layer_matrix, last_layer_matrix in attention_matrices
+                [matrix.cpu() for matrix in matrices] for matrices in attention_matrices
             ]
         }
 
@@ -136,26 +136,19 @@ class LitReformerTTS(pl.LightningModule):
         concat_inference_outputs = self.validate_inference("concat")
 
         attention_matrices = [
-            (first_layer_matrix, last_layer_matrix)
-            for output in outputs
-            for first_layer_matrix, last_layer_matrix in output['attention_matrices']
+            matrices for output in outputs for matrices in output['attention_matrices']
         ]
         num_visualizations = self.config.experiment.tts_training.num_visualizations
         attention_matrices = attention_matrices[:num_visualizations]
-        for i, (first_layer_matrix, last_layer_matrix) in enumerate(attention_matrices):
-            assert first_layer_matrix.shape == last_layer_matrix.shape
-            with NamedTemporaryFile(suffix=".png") as f:
-                fig = plot_attention_matrix(first_layer_matrix)
-                self.logger.log_image("attention_first_layer", fig)
-                fig.savefig(f.name)
-                self.logger.log_artifact(f.name, f"attention_first_layer/viz{i}_e{self.current_epoch}.png")
-                plt.close()
-            with NamedTemporaryFile(suffix=".png") as f:
-                fig = plot_attention_matrix(last_layer_matrix)
-                self.logger.log_image("attention_last_layer", fig)
-                fig.savefig(f.name)
-                self.logger.log_artifact(f.name, f"attention_last_layer/viz{i}_e{self.current_epoch}.png")
-                plt.close()
+        for i, matrices in enumerate(attention_matrices):
+            for j, matrix in enumerate(matrices):
+                with NamedTemporaryFile(suffix=".png") as f:
+                    fig = plot_attention_matrix(matrix)
+                    self.logger.log_image(f"attention_layer_{j}", fig)
+                    fig.savefig(f.name)
+                    artifact_name = f"attention_layer_{j}/viz{i}_e{self.current_epoch}.png"
+                    self.logger.log_artifact(f.name, artifact_name)
+                    plt.close()
 
         val_loss = mean([o['loss'] for o in outputs])
         logs = {
@@ -323,16 +316,12 @@ class LitReformerTTS(pl.LightningModule):
     def trim_attention_matrices(
             attention_matrices: List[torch.Tensor],
             stop_tokens: torch.Tensor,
-    ) -> List[Tuple[torch.Tensor, torch.Tensor]]:
-        assert len(attention_matrices) == 2
-        first_layer_matrices, last_layer_matrices = attention_matrices
+    ) -> List[List[torch.Tensor]]:
         stop_indexes = stop_tokens.argmax(dim=1)
-        assert len(first_layer_matrices) == len(last_layer_matrices) == len(stop_indexes)
-        return [
-            (first_layer_matrix[:stop_index, :], last_layer_matrix[:stop_index, :])
-            for first_layer_matrix, last_layer_matrix, stop_index
-            in zip(first_layer_matrices, last_layer_matrices, stop_indexes)
-        ]
+        result = []
+        for i, stop_index in enumerate(stop_indexes):
+            result.append([matrix[i, :stop_index, :] for matrix in attention_matrices])
+        return result
 
 
 class LitSqueezeWave(pl.LightningModule):
