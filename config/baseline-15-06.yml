@@ -1,0 +1,55 @@
+data_directory: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2'
+merged_transcript_csv_path: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2/transcript.csv'
+audio_directory: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2/audio'
+mel_directory: '/scidatalg/reformer-tts/reformer-tts/data/lj-speech-tacotron2/mel'
+dataset:
+  use_tacotron2_spectrograms: true
+  dict_size: 76
+  audio_format:
+    max_duration_ms: 768000
+    min_duration_ms: 1000
+    mono: true
+    sampling_rate: 22050
+  mel_format:
+    hop_length: 256
+    n_fft: 1024
+    n_mels: 80
+    win_length: 1024
+
+experiment:
+  experiment_name: "baseline-15-06"
+  max_epochs: 1000
+  train_workers: 12
+  val_workers: 12
+  tags: "shuffle wd_1e-6 bs_60 postnet_2 depth_6 enc_bucket_64 dec_bucket_128 attn_dropout 2xposnet_dropout"
+  tts_training:
+    batch_size: 12
+    weight_decay: 0.000001
+    num_visualizations: 4
+    accumulate_grad_batches: 5
+    gradient_clip_val:  1.
+    warmup_steps: 320
+  save_top_k_checkpoints: 3
+  checkpoints_dir: /results/reformer-tts
+
+model:
+  dict_size: 76
+  num_mel_coeffs: 80
+  scp_encoding_dropout: 0.05
+  pad_base: 256
+  enc_prenet_kwargs:
+    dropout: 0.05
+  dec_prenet_kwargs:
+    dropout: 0.05
+  enc_reformer_kwargs:
+    attn_kwargs:
+      post_attn_dropout: 0.1
+  dec_reformer_kwargs:
+    self_attn_kwargs:
+      bucket_size: 128
+      post_attn_dropout: 0.1
+    attn_kwargs:
+      dropout: 0.1
+  postnet_kwargs:
+    depth: 2
+    dropout: 0.2
