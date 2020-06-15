@@ -1,0 +1,7 @@
+md5: e963d82ee58c58ab7203106ce900585f
+outs:
+- md5: 67e55c75fbc0d0b8692418b03cc1e4ce
+  path: attn+postnet-dropout_epoch=135-val_loss=0.24.ckpt
+  cache: true
+  metric: false
+  persist: false
