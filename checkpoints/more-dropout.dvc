@@ -1,0 +1,7 @@
+md5: 90475670d4f6b2e8c7b9de83386ea296
+outs:
+- md5: 67746e0cc029a40763e1d735b83a5e7a.dir
+  path: more-dropout
+  cache: true
+  metric: false
+  persist: false
