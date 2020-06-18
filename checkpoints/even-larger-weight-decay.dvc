@@ -1,0 +1,7 @@
+md5: 531f2029fd03c446ad326cc66fe17d41
+outs:
+- md5: a32577b6a12a3439ac488e80ef30b82d.dir
+  path: even-larger-weight-decay
+  cache: true
+  metric: false
+  persist: false

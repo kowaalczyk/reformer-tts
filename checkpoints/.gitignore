@@ -2,3 +2,5 @@
 /noise
 /clipping1
 /learning-rate-2x-smaller
+/even-larger-weight-decay
+/baseline-15-06
