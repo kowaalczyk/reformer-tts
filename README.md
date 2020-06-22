@@ -1,31 +1,77 @@
 # Reformer-TTS
 
-An adaptation of [Reformer: The Efficient Transformer](https://arxiv.org/abs/2001.04451) 
+An adaptation of [Reformer: The Efficient Transformer](https://arxiv.org/abs/2001.04451)
 for text-to-speech task.
 
+This project contains:
+- preprocessing code for creating a Trump Speech Dataset based on transcripts
+  from [rev.com](https://www.rev.com/blog/transcript-tag/donald-trump-speech-transcripts)
+- implementation of Reformer TTS: an adaptation of
+  [Reformer: The Efficient Transformer](https://arxiv.org/abs/2001.04451) for text-to-speech task,
+  based on [Neural Speech Synthesis with Transformer Network](https://arxiv.org/abs/1809.08895)
+- implementation of [Squeezewave: Extremely Lightweight Vocoders For On-Device Speech Synthesis](https://arxiv.org/pdf/2001.05685)
+  in modern PyTorch, without dependencies on Tacotron2, WaveNet or WaveGlow
+- Pytorch Lightning wrappers for easy training of both models with easy-to-use configuration management
+- CLI for running training, inference and data preprocessing
 
-## Project scope
 
-We aim to create a significantly more efficient version of state-of-the-art text-to-speech model, by replacing its transformer architecture with optimizations proposed in the more recent reformer paper. We’ll use it to generate a believable deepfake of Donald Trump based on a custom dataset of his speeches created specifically for this purpose.
+## Project scope and current status
 
-Specifically, we want to:
+We aimed to create a significantly more efficient version of state-of-the-art text-to-speech model,
+by replacing its transformer architecture with optimizations proposed in the more recent reformer paper.
+We’ll use it to generate a believable deepfake of Donald Trump based on a custom dataset of his speeches,
+created specifically for this purpose.
 
-1. Use layers introduced in Reformer ([paper](https://arxiv.org/abs/2001.04451), [original implementation](https://github.com/google/trax/tree/master/trax/models/reformer), [pytorch implementation](https://github.com/lucidrains/reformer-pytorch)) to build a **Reformer-TTS** model inspired by **Transformer-TTS** ([paper](https://arxiv.org/abs/1809.08895), [unreliable implementation in pytorch](https://github.com/soobinseo/Transformer-TTS)).
-2. Build a custom **Trump Speech Dataset** based on scraped videos with transcripts ([source](https://www.rev.com/blog/transcript-tag/donald-trump-speech-transcripts))
-3. Train the Reformer-TTS on the created dataset, evaluate results using objective metrics (from [this paper](https://arxiv.org/abs/1909.11646)) and implement a pipeline for human evaulation (MOS) using WaveNet vocoder ([paper](https://arxiv.org/abs/1609.03499), [NVIDIA reference implementation](https://github.com/NVIDIA/nv-wavenet)) to synthesize voice from mel spectrograms
-4. Write a paper summarizing our results
+Unfortunately, we weren't able to produce results matching the ones from Transformer TTS paper,
+after experimenting with more than 100 hyperparameter combinations over 2 months. We believe that
+the model size is a significant factor here, and to train transformers for TTS one really needs
+to reduce overfitting to allow long, steady training process (~1 week of training on RTX 2080Ti).
 
-Our deliverable will include:
+Also, having access to original implementation of Transformer TTS would greatly help.
 
-- ready-to-use model with pre-trained weights (all publicly available)
-- pipeline for training reproduction (from data download to trained model)
-- paper & presentation describing our decisions & results
+While the reformer didn't match our expectations, the SqueezeWave implementation matches performance of
+[the original one](https://github.com/tianrengao/SqueezeWave) without FP16 support.
+
+We also include CLI for running training and inference (see *usage* section),
+and all data necessary for reproduction of experiments (see *development* section).
+
+**The project is under a significant refactor, this version is left here to allow compatiblility
+with our previous expeirments and will be moved in the near future**.
 
 
 ### Extra documents
 
+- [final presentation](https://youtu.be/ckeKsM6obnM)
+  and [slides](https://speakerdeck.com/kowaalczyk/reformer-text-to-speech)
 - [project journal](https://paper.dropbox.com/doc/GSN-2020-Transformer-Project-Journal--Av9TZdQgTjFBPDsh~F_GD4uRAQ-Y2zXcN0nSKlmMYPjLTzMw)
 - [research doc](https://paper.dropbox.com/doc/GSN-2020-Speech-Synthesis-Research-Doc--Av8RCqsp~MX95ZSt3Jl1ubgSAQ-Iv6r0eA0nmS34RYK8BCmK)
+
+
+## Using the project
+
+This project is a normal python package, and can be installed using `pip`,
+as long as you have **Python 3.8 or greater**.
+
+Go to [releases page](https://github.com/kowaalczyk/reformer-tts/releases)
+to find the installation instruction for latest release.
+
+After installation, you can see available commands by running:
+```shell
+python -m reformer_tts.cli --help
+```
+
+All commands are executed using cli, for example:
+```shell
+python -m reformer_tts.cli train-vocoder
+```
+
+Most parameters (in particular, all training hyperparameters) are specified via
+`--config` argument to `cli` (that goes before the command you want to run), eg:
+```shell
+python -m reformer_tts.cli -c /path/to/your/config.yml train-vocoder
+```
+
+Default values can be found in `reformer_tts.config.Config` (and its fields).
 
 
 ## Development setup
@@ -94,7 +140,7 @@ All tests should work on CPU and GPU, and may take up to a minute to complete.
 
 - Use whatever package manager you want
 - Use `Python>=3.8`
-- All python dependencies will be in `requirements.txt` 
+- All python dependencies will be in `requirements.txt`
   as well as in `environment.yml`
 - One central entrypoint for running tasks: `reformer_tts/cli.py`,
   run `python reformer_tts/cli.py --help` for detailed reference
@@ -102,19 +148,19 @@ All tests should work on CPU and GPU, and may take up to a minute to complete.
 
 ### Configuration
 
-Configuration is organized in dataclass structures: 
-- Each project submodule has its own configuration file, called `config.py`, 
+Configuration is organized in dataclass structures:
+- Each project submodule has its own configuration file, called `config.py`,
   where the parameters and *default* values are defined - for example,
   dataset config parameters are specified in `reformer_tts.dataset.config`
 - The `reformer_tts.config.Config` class contains all submodules' config settings
-- *Actual* values of config parameters are loaded from configuration files in yaml format, 
+- *Actual* values of config parameters are loaded from configuration files in yaml format,
   best practice is to only override defaults in the yaml files
 
 This way, the default values are set close to the place where they are used,
-any config value can be overridden wherever you want 
+any config value can be overridden wherever you want
 
 **To change runtime configuration**
-- automatically generate configuration with default values using command 
+- automatically generate configuration with default values using command
   `python reformer_tts/cli.py save-config -o config/custom.yml`
   or manually copy one of the existing configuration files in `config/` directory
 - remove defaults you don't wish to change from the generated config file
@@ -187,52 +233,3 @@ Since /scidatasm directory is not syncing while we want to train we have to setu
 * copy google api credentials to `${HOME}/gcp-cred.json` (using your favourite editor)
 * copy the content of `scripts/setup_entropy_node.sh` to new file in home dir (again using editor)
 * run copied script
-
-
-<!-- **this is not 100% supported, as we've decided to use GCP instead of entropy cluster for our project**
-
-Job definition files are located in [`jobs/`](jobs) directory.
-
-File `setup_jobs.sh` was created to help with setting up environment for jobs:
-```
-./setup_jobs.sh help
-
-Setup tasks:
-./setup_jobs.sh dirs - make directories necessary to run the jobs
-./setup_jobs.sh sync - sync all necessary data to /scidatasm/kowal/ partiion
-./setup_jobs.sh clean_users - change usernames in job files to a generic $USER
-./setup_jobs.sh all - perform all of the setup tasks in sequence
-
-Running jobs:
-./setup_jobs.sh check - checks scripts for common errors
-./setup_jobs.sh run [job_file] performs checks and runs the job using sbatch
-```
-
-Running jobs manually may result in errors or data loss.
-To prevent it, use `./setup_jobs.sh run [job_file]` instead of `sbatch` directly.
-
-Example:
-```shell script
-./setup_jobs.sh run jobs/compile_nv_wavenet_extension.sh
-```
-
-This will automatically save job output with its name and timestamp in your results folder.
-
-For more details, see example jobs in `jobs/` directory. -->
-
-
-<!-- #### Adding new jobs
-
-Before sharing your job file with others, document what changes need to be made
-in the job file, so that it works for other users. Make sure to include:
-1. Changes to user-specific paths (possibly requires changing `setup_jobs.sh),
-   as #SBATCH directives cannot use environment variables
-   (see [related docs](https://help.rc.ufl.edu/doc/Using_Variables_in_SLURM_Jobs))
-2. Directories that need to be created (otherwise the script will crash)
-3. Results that need to be moved (jobs save results in /results/ partitions,
-   usually we'll want to add results to dvc or some other local path) -->
-
-
-### TODOs
-
-- document hardware specs (GPU) as soon as we get training to work reliably

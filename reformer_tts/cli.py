@@ -25,11 +25,14 @@ from reformer_tts.training.wrappers import LitSqueezeWave, LitReformerTTS
 
 
 @click.group()
-@click.option("-c", "--config", envvar="REFORMER_TTS_CONFIG", default="config/default.yml")
+@click.option("-c", "--config", envvar="REFORMER_TTS_CONFIG", default=None)
 @click.pass_context
 def cli(ctx: Context, config):
     ctx.ensure_object(dict)
-    ctx.obj["CONFIG"] = Config.from_yaml_file(config)
+    if config is None:
+        ctx.obj["CONFIG"] = Config()  # use default values
+    else:
+        ctx.obj["CONFIG"] = Config.from_yaml_file(config)
 
 
 @cli.command()
@@ -250,6 +253,36 @@ def predict_from_text(
                 config.dataset.audio_format.sampling_rate
             )
             print(f"Output saved to {audio_path.resolve()}")
+
+
+@cli.command()
+@click.option("-s", "--squeeze-wave-checkpoint", type=str, required=True, help="Path to squeezewave checkpoint")
+@click.option("-o", "--output-dir", type=str, required=True, help="Path where outputs will be saved")
+@click.pass_context
+def predict_from_mel(ctx: Context, squeeze_wave_checkpoint: str, output_dir: str):
+    config: Config = ctx.obj["CONFIG"]
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(exist_ok=True, parents=True)
+
+    on_gpu = torch.cuda.is_available()
+    squeeze_wave = LitSqueezeWave.load_from_checkpoint(
+        squeeze_wave_checkpoint, config=config, on_gpu=False
+    )
+    squeeze_wave = SqueezeWave.remove_norms(squeeze_wave.model)
+    squeeze_wave = squeeze_wave.eval()
+
+    trump_spec = torch.load('data/preprocessed-tacotron2/mel/speech00_0000.pt')
+    lj_spec = torch.load('data/lj-speech-tacotron2/mel/LJ001-0001.pt')
+
+    prefix = str(Path(squeeze_wave_checkpoint).name)
+    for spec, suffix in zip([trump_spec, lj_spec], ["trump", "lj"]):
+        audio = squeeze_wave.infer(spec)
+        audio_path = output_dir / f"{prefix}-{suffix}.wav"
+        torchaudio.save(
+            str(audio_path), audio.cpu(), sample_rate=config.dataset.audio_format.sampling_rate
+        )
+    print(f"Results saved to {output_dir}")
 
 
 @cli.command()
